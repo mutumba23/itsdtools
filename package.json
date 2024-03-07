@@ -1,6 +1,6 @@
 {
   "name": "itsdtools",
-  "version": "1.0.0",
+  "version": "0.2.7",
   "private": true,
   "description": "ServiceDesk app to gather useful tools into one tool",
   "author": {
