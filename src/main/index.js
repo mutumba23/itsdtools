@@ -1,6 +1,5 @@
 import { app, shell, BrowserWindow, ipcMain, dialog, screen, Menu, Tray } from 'electron'
 import { autoUpdater } from "electron-updater";
-import { autoUpdater } from "electron-updater";
 import AutoLaunch from "auto-launch";
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
