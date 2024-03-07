@@ -1,0 +1,22 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Electron</title>
+    <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
+    <meta http-equiv="Content-Security-Policy" content="
+      default-src 'self';
+      connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://*.firebaseio.com https://storage.googleapis.com https://fcm.googleapis.com https://securetoken.googleapis.com https://itsd-tools.cloudfunctions.net https://itsd-tools.firebaseapp.com https://api.github.com;
+      script-src 'self';
+      style-src 'self' 'unsafe-inline';
+      img-src 'self' data:;
+    ">
+  
+
+  </head>
+
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
