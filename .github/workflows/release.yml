@@ -21,6 +21,10 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
+      - name: Set up environment variables
+        run: |
+          echo "GH_TOKEN=${{ secrets.ACCESS_TOKEN }}" >> $GITHUB_ENV
+
       - name: Build Windows
         run: npm run build:win
 
