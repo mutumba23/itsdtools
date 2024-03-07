@@ -15,14 +15,12 @@ import { removeMailboxAccess } from './scripts/exchange/removeMailboxAccess.js';
 import { giveDLAccess } from './scripts/exchange/giveDLAccess.js';
 import { installExchangeModule } from './scripts/exchange/installExchangeModule.js';
 
+// Enable auto-launch
 const autoLauncher = new AutoLaunch({
   name: 'ITSD Tools',
   path: join(app.getPath('userData'), '..', '..', 'Local', 'Programs', 'itsdtools', 'itsdtools.exe')
 });
-
-// Enable auto-launch
 autoLauncher.enable();
-
 
 function setupIPCMainListeners(win, winSettings, winAbout, winPLIPAssist) {
   win.on('ready-to-show', () => {
@@ -433,6 +431,12 @@ function setupIPCMainListeners(win, winSettings, winAbout, winPLIPAssist) {
     })
   })
 
+  ipcMain.on('app-version', () => {
+    const appVersion = app.getVersion()
+        winAbout.webContents.send('app-version', appVersion)
+
+  })
+
   //Send info to the windows to toggle theme
   ipcMain.on('toggle-theme', (event, data) => {
     const theme = data
@@ -598,8 +602,7 @@ function createWindow() {
     winSettings.webContents.on('did-finish-load', () => {
       winSettings.webContents.send('navigate-route', '/settings');
     });
-
-  }
+  }   
 
   // Tray
   const tray = new Tray(icon);
@@ -629,13 +632,29 @@ function createWindow() {
     autoUpdater.checkForUpdatesAndNotify();
   });
 
-  autoUpdater.on('update-downloaded', (event, releaseInfo) => {
+  autoUpdater.on('checking-for-update', () => {
+    console.log('Checking for update...')
+  })
+  autoUpdater.on('update-available', () => {
+    console.log('Update available.')
+  })
+  autoUpdater.on('update-not-available', () => {
+    console.log('Update not available.')
+  })
+  autoUpdater.on('error', (err) => {
+    console.log('Error in auto-updater. ' + err)
+  })
+  autoUpdater.on('update-downloaded', () => {
+    console.log('Update downloaded')
+  });
+
+  autoUpdater.on('update-downloaded', () => {
     // Prompt the user for confirmation before installing
     const dialogOpts = {
       type: 'info',
       buttons: ['Restart', 'Later'],
       title: 'Update available',
-      message: `A new update is available. Version ${releaseInfo.version} is ready to be installed.`
+      message: `A new update is available.`
     };
   
     const response = dialog.showMessageBoxSync(null, dialogOpts);
@@ -660,9 +679,6 @@ app.whenReady().then(() => {
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
   })
-
-  // IPC test
-  ipcMain.on('ping', () => console.log('pong'))
 
   createWindow()
 

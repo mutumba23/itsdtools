@@ -1,6 +1,6 @@
 <template>
   <v-app-bar density="compact" color="tertiary" class="ma-0 drag" rounded>
-    <v-app-bar-title>Version: {{latestRelease}}<v-btn @click="showVersionHistory = true">Version History</v-btn></v-app-bar-title>
+    <v-app-bar-title>Version: {{appVersion}}<v-btn @click="showVersionHistory = true">Version History</v-btn></v-app-bar-title>
     <template #append>
       <v-btn
         color="on-tertiary"
@@ -115,6 +115,7 @@ const showVersionHistory = ref(false)
 const snackbarMessage = ref('')
 const latestRelease = ref(null)
 const releases = ref([])
+const appVersion = ref('')
 
 const sendIpcMessage = (message) => {
   window.api.sendMessage(message)
@@ -131,6 +132,12 @@ onMounted(() => {
       store.setTheme(themeName);
   });
 
+  window.api.addEventListener("app-version", (data) => {
+    appVersion.value = data;
+  });
+
+  window.api.sendMessage('app-version');
+
   axios
       .get("https://api.github.com/repos/mutumba23/itsdtools/releases")
       .then((response) => {
@@ -140,7 +147,6 @@ onMounted(() => {
 
         const latestGithubRelease = releases.value[0];
         latestRelease.value = latestGithubRelease.name;
-        console.log(releases)
       })
       .catch((error) => {
         console.log(error);
