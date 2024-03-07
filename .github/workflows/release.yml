@@ -7,17 +7,13 @@ on:
 
 jobs:
   release:
-    runs-on: ${{ matrix.os }}
-
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: windows-latest
 
     steps:
       - name: Check out Git repository
         uses: actions/checkout@v4
 
-      - name: Build for Windows
+      - name: Build Windows
         run: npm run build:win
 
       - name: Release
@@ -27,12 +23,6 @@ jobs:
           files: |
             dist/*.exe
             dist/*.zip
-            dist/*.dmg
-            dist/*.AppImage
-            dist/*.snap
-            dist/*.deb
-            dist/*.rpm
-            dist/*.tar.gz
             dist/*.yml
             dist/*.blockmap
         env:
