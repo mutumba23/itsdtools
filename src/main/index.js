@@ -1,5 +1,5 @@
 import { app, shell, BrowserWindow, ipcMain, dialog, screen, Menu, Tray } from 'electron'
-//import { autoUpdater } from "electron-updater";
+import { autoUpdater } from "electron-updater";
 import AutoLaunch from "auto-launch";
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
@@ -623,6 +623,28 @@ function createWindow() {
   ]);
   tray.setToolTip("ITSD Tools");
   tray.setContextMenu(contextMenu);
+
+  //Autoupdater
+  win.webContents.once("did-finish-load", () => {
+    autoUpdater.checkForUpdatesAndNotify();
+  });
+
+  autoUpdater.on('update-downloaded', (event, releaseInfo) => {
+    // Prompt the user for confirmation before installing
+    const dialogOpts = {
+      type: 'info',
+      buttons: ['Restart', 'Later'],
+      title: 'Update available',
+      message: `A new update is available. Version ${releaseInfo.version} is ready to be installed.`
+    };
+  
+    const response = dialog.showMessageBoxSync(null, dialogOpts);
+  
+    if (response === 0) {
+      autoUpdater.quitAndInstall();
+    }
+  });
+
 }
 
 // This method will be called when Electron has finished
