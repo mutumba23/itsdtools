@@ -76,7 +76,8 @@ import { ref, onMounted, computed } from 'vue'
     }
 
     const openAbout = () => {
-      window.api.sendMessage('open-about')
+    //  window.api.sendMessage('open-about')
+      store.showAbout = true;
     }
 
     const minimize = () => {

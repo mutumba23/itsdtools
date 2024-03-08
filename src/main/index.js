@@ -15,6 +15,7 @@ import { removeMailboxAccess } from './scripts/exchange/removeMailboxAccess.js';
 import { giveDLAccess } from './scripts/exchange/giveDLAccess.js';
 import { installExchangeModule } from './scripts/exchange/installExchangeModule.js';
 
+
 // Enable auto-launch
 const autoLauncher = new AutoLaunch({
   name: 'ITSD Tools',
@@ -22,7 +23,7 @@ const autoLauncher = new AutoLaunch({
 });
 autoLauncher.enable();
 
-function setupIPCMainListeners(win, winSettings, winAbout, winPLIPAssist) {
+function setupIPCMainListeners(win, winSettings, winPLIPAssist) {
   win.on('ready-to-show', () => {
     win.show()
   })
@@ -182,7 +183,11 @@ function setupIPCMainListeners(win, winSettings, winAbout, winPLIPAssist) {
       height: windowOptions.height,
       x: windowOptions.x,
       y: windowOptions.y,
-      frame: true
+      frame: true,
+      webPreferences: {
+        // Define your content security policy here
+        contentSecurityPolicy: "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline';"
+    }
     })
 
     newWindow.loadURL(
@@ -294,11 +299,6 @@ function setupIPCMainListeners(win, winSettings, winAbout, winPLIPAssist) {
     win.webContents.send('minimize-winSettings')
   })
 
-  //Hide winAbout
-  ipcMain.on('minimize-winAbout', () => {
-    winAbout.hide()
-  })
-
   //Minimize winPLIPAssist
   ipcMain.on('minimize-winPLIPAssist', () => {
     winPLIPAssist.minimize()
@@ -390,26 +390,6 @@ function setupIPCMainListeners(win, winSettings, winAbout, winPLIPAssist) {
     winPLIPAssist.maximize()
   })
 
-  //Open About
-  ipcMain.on('open-about', () => {
-    winAbout.show()
-    const winBounds = win.getBounds()
-    const screenBounds = screen.getPrimaryDisplay().workArea
-
-    let x = winBounds.x
-    let y = winBounds.y
-
-    if (y + winAbout.getBounds().height > screenBounds.y + screenBounds.height) {
-      y = screenBounds.y + screenBounds.height - winAbout.getBounds().height
-    }
-
-    if (x + winAbout.getBounds().width > screenBounds.x + screenBounds.width) {
-      x = screenBounds.x + screenBounds.width - winAbout.getBounds().width
-    }
-
-    winAbout.setBounds({ x, y })
-  })
-
   //Send info to Windows to change the color
   ipcMain.on('change-color', (event, payload) => {
     const { storeThemeName, color, key } = payload
@@ -433,7 +413,7 @@ function setupIPCMainListeners(win, winSettings, winAbout, winPLIPAssist) {
 
   ipcMain.on('app-version', () => {
     const appVersion = app.getVersion()
-        winAbout.webContents.send('app-version', appVersion)
+        win.webContents.send('app-version', appVersion)
 
   })
 
@@ -518,7 +498,6 @@ function createWindow() {
   const dimensions = {
     win: { width: 710, height: 545 },
     winSettings: { width: 500, height: 670 },
-    winAbout: { width: 800, height: 550 },
     winPLIPAssist: { width: 800, height: 550 }
   }
 
@@ -538,15 +517,6 @@ function createWindow() {
     alwaysOnTop: true,
     minWidth: 340
   })
-  const winAbout = new BrowserWindow({
-    ...browserWindowOptions,
-    ...dimensions.winAbout,
-    title: 'About Window',
-    skipTaskbar: true,
-    alwaysOnTop: false,
-    resizable: false,
-    minWidth: 340
-  })
   const winPLIPAssist = new BrowserWindow({
     ...browserWindowOptions,
     ...dimensions.winPLIPAssist,
@@ -558,15 +528,14 @@ function createWindow() {
 
   // Hide settings and about windows
   winSettings.hide()
-  winAbout.hide()
   winPLIPAssist.hide()
   Menu.setApplicationMenu(null) 
 
   //Add function from ipcMainHandlers.js for the ipc listeners
-  setupIPCMainListeners(win, winSettings, winAbout, winPLIPAssist)
+  setupIPCMainListeners(win, winSettings, winPLIPAssist)
 
   // Register shortcuts
-  ;[win, winSettings, winAbout, winPLIPAssist].forEach((window) => {
+  ;[win, winSettings, winPLIPAssist].forEach((window) => {
     localShortcut.register(window, 'F12', () => {
       window.webContents.openDevTools()
     })
@@ -583,20 +552,14 @@ function createWindow() {
     win.loadURL(process.env['ELECTRON_RENDERER_URL']);
     winSettings.loadURL(`${process.env['ELECTRON_RENDERER_URL']}#/settings`);
     winPLIPAssist.loadURL(`${process.env['ELECTRON_RENDERER_URL']}#/plipassist`);
-    winAbout.loadURL(`${process.env['ELECTRON_RENDERER_URL']}#/about`);
   } else {
     // Load the local HTML file in production mode
     win.loadFile(join(__dirname, '../renderer/index.html'));
     winSettings.loadFile(join(__dirname, '../renderer/index.html'));
     winPLIPAssist.loadFile(join(__dirname, '../renderer/index.html'));
-    winAbout.loadFile(join(__dirname, '../renderer/index.html'));
 
    winPLIPAssist.webContents.on('did-finish-load', () => {
     winPLIPAssist.webContents.send('navigate-route', '/plipassist');
-    });
-
-    winAbout.webContents.on('did-finish-load', () => {
-      winAbout.webContents.send('navigate-route', '/about');
     });
 
     winSettings.webContents.on('did-finish-load', () => {

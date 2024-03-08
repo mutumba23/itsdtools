@@ -1,7 +1,8 @@
 const { spawn } = require("child_process");
-const path = require("path");
+import ps1Path from '../../../../resources/ps1_scripts/giveMailboxAccess.ps1?asset&asarUnpack'
 
-const giveMailboxAccess = ({ mailboxes, users, automapping }) => {
+
+const giveMailboxAccess = ({ mailboxes, users, automapping,  }) => {
   return new Promise((resolve, reject) => {
     // Remove whitespaces from each email
     const cleanedMailboxes = mailboxes.map((mailbox) =>
@@ -9,18 +10,9 @@ const giveMailboxAccess = ({ mailboxes, users, automapping }) => {
     );
     const cleanedUsers = users.map((email) => email.replace(/\s/g, ""));
 
-    const isDevelopment = process.env.NODE_ENV !== "production";
-    let scriptPath;
-    if (isDevelopment) {
-      // Go up two directories to get to the root directory
-      scriptPath = path.join(__dirname, '..', '..', 'resources', 'ps1_scripts', 'giveMailboxAccess.ps1');
-    } else {
-        scriptPath = path.join(process.resourcesPath, 'ps1_scripts', 'giveMailboxAccess.ps1');
-    }
-
     const script = spawn("powershell.exe", [
       "-File",
-      scriptPath,
+      ps1Path,
       "-mailboxes",
       cleanedMailboxes.join(","),
       "-users",
@@ -35,10 +27,16 @@ const giveMailboxAccess = ({ mailboxes, users, automapping }) => {
       console.log("PowerShell script output:", data.toString());
     });
 
+    let stderr = "";
+script.stderr.on("data", (data) => {
+  stderr += data;
+  console.error("PowerShell script error:", data.toString());
+});
+
     script.on("close", (code) => {
       // Powershell errors
       if (code !== 0) {
-        console.error("Error executing PowerShell script:", stdout);
+        console.error("Error executing PowerShell script:", stderr);
         let errorMessages = [];
         if (stdout.includes("User canceled authentication")) {
           errorMessages.push("User canceled the authentication process.");

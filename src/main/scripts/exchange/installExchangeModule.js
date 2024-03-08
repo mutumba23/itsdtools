@@ -1,21 +1,13 @@
 const sudo = require('sudo-prompt');
-const path = require("path");
+import ps1Path from '../../../../resources/ps1_scripts/installExchangeModule.ps1?asset&asarUnpack'
 
 const installExchangeModule = () => {
     return new Promise((resolve, reject) => {
-        const isDevelopment = process.env.NODE_ENV !== "production";
-        let scriptPath;
-        if (isDevelopment) {
-            scriptPath = path.join(__dirname, '..', '..', 'resources', 'ps1_scripts', 'installExchangeModule.ps1');
-        } else {
-            scriptPath = path.join(process.resourcesPath, 'ps1_scripts', 'installExchangeModule.ps1');
-        }
-
         const options = {
             name: 'ITSD Tools',
         };
 
-        sudo.exec(`powershell -NoProfile -ExecutionPolicy Bypass -File "${scriptPath}"`, options,
+        sudo.exec(`powershell -NoProfile -ExecutionPolicy Bypass -File "${ps1Path}"`, options,
             (error, stdout, stderr) => {
                 if (error) {
                     console.error(`Error executing PowerShell script: ${error}`);

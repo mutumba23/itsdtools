@@ -108,54 +108,40 @@ export const useMyStore = defineStore('ITSDToolsStore', {
     updatedCommonTools: [
       {
         id: 0,
-        label: 'Screenshot',
-        icon: 'fas fa-camera',
-        category: 'commonTools',
-        removed: true
-      },
-      {
-        id: 1,
         label: 'iAssist',
         icon: 'fas fa-code',
         category: 'commonTools'
       },
       {
-        id: 2,
+        id: 1,
         label: 'PLIPAssist',
         icon: 'fas fa-code',
         category: 'commonTools'
       },
       {
-        id: 3,
+        id: 2,
         label: 'IMU',
         icon: 'fas fa-users',
         category: 'commonTools'
       },
       {
-        id: 4,
+        id: 3,
         label: 'ADUC',
         icon: 'fas fa-users',
         category: 'commonTools'
       },
       {
-        id: 5,
+        id: 4,
         label: 'MyIdentity',
         icon: 'fas fa-id-card',
         category: 'commonTools'
       },
       {
-        id: 6,
+        id: 5,
         label: 'eGuides',
         icon: 'fas fa-graduation-cap',
         category: 'commonTools'
       },
-      {
-        id: 7,
-        label: 'Jobba',
-        icon: 'fas fa-building',
-        category: 'commonTools',
-        removed: true
-      }
     ],
     newCommunicationItem: {
       id: 5,
@@ -197,7 +183,8 @@ export const useMyStore = defineStore('ITSDToolsStore', {
     favoriteScripts: [],
     lastRunScripts: [],
     snackbarMessage: '',
-    showGeneralSnackbar: false
+    showGeneralSnackbar: false,
+    showAbout: false,
   }),
   persist: {
     paths: [

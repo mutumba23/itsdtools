@@ -1,5 +1,5 @@
 const { spawn } = require("child_process");
-const path = require("path");
+import ps1Path from '../../../../resources/ps1_scripts/removeMailboxAccess.ps1?asset&asarUnpack'
 
 const removeMailboxAccess = ({ mailboxes, users }) => {
   return new Promise((resolve, reject) => {
@@ -9,17 +9,9 @@ const removeMailboxAccess = ({ mailboxes, users }) => {
     );
     const cleanedUsers = users.map((email) => email.replace(/\s/g, ""));
 
-    const isDevelopment = process.env.NODE_ENV !== "production";
-    let scriptPath;
-    if (isDevelopment) {
-        scriptPath = path.join(__dirname, '..', '..', 'resources', 'ps1_scripts', 'removeMailboxAccess.ps1');
-    } else {
-        scriptPath = path.join(process.resourcesPath, 'ps1_scripts', 'removeMailboxAccess.ps1');
-    }
-
     const script = spawn("powershell.exe", [
       "-File",
-      scriptPath,
+      ps1Path,
       "-mailboxes",
       cleanedMailboxes.join(","),
       "-users",

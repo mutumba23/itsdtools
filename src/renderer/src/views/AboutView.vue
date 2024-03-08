@@ -5,7 +5,7 @@
       <v-btn
         color="on-tertiary"
         icon="fas fa-xmark"
-        @click="sendIpcMessage('minimize-winAbout')"
+        @click="store.showAbout = false"
       ></v-btn>
     </template>
   </v-app-bar>
@@ -77,28 +77,6 @@
                     </v-card>
                 </v-sheet>
             </v-carousel-item>
-
-            <v-carousel-item>
-                <v-sheet
-                height="100%"
-                class="d-flex justify-center"
-              >
-                    <v-card class="bg-white flex-column d-flex mb-14 my-2" max-width="374" width="100%">
-                        <v-img class="align-end text-white" cover max-height="250" src="./plip.jpg?asset">
-                        <v-card-title class="bg-black d-inline">About me</v-card-title>
-                        </v-img>
-                        <v-card-item>
-                            <v-card-title>Philip Nilsson</v-card-title>
-                            <v-card-subtitle>Support Specialist</v-card-subtitle>
-                        </v-card-item>
-                        <v-card flat class="pa-2 mx-2 bg-tertiary">
-                            <div><v-icon size="x-small" class="mr-2">fas fa-envelope</v-icon><a href="mailto:philip.nilsson@ingka.ikea.com">philip.nilsson@ingka.ikea.com</a></div>
-                            <div><v-icon size="x-small" class="mr-2">fas fa-location-dot</v-icon>KH Elmhult</div>
-                            <div><v-icon size="x-small" class="mr-2">fas fa-people-group</v-icon>Support Team CTI-Common Inter IKEA tools</div>
-                            </v-card>
-                    </v-card>
-                </v-sheet>
-            </v-carousel-item>
         </v-carousel>
   </v-sheet>
 </template>
@@ -116,10 +94,6 @@ const snackbarMessage = ref('')
 const latestRelease = ref(null)
 const releases = ref([])
 const appVersion = ref('')
-
-const sendIpcMessage = (message) => {
-  window.api.sendMessage(message)
-}
 
 onMounted(() => {
   window.api.addEventListener("toggle-theme", (data) => {
