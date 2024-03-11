@@ -147,12 +147,20 @@
             :rules="textFieldRulesNetworkID"
           ></v-text-field>
           <v-text-field
-            v-if="scripts[chosenScript].requiresMailbox && !scripts[chosenScript].multipleUsers"
+            v-if="scripts[chosenScript].requiresMailbox && (!scripts[chosenScript].multipleUsers || scripts[chosenScript].requiresDisplayName)"
             v-model="mailbox"
             :disabled="scripts[chosenScript].isLoading"
             label="Shared mailbox"
             placeholder="example@inter.ikea.com"
             :rules="textFieldRulesMailbox"
+          ></v-text-field>
+          <v-text-field
+            v-if="scripts[chosenScript].requiresMailbox && scripts[chosenScript].requiresDisplayName"
+            v-model="displayName"
+            :disabled="scripts[chosenScript].isLoading"
+            label="Display Name"
+            placeholder="Example Mailbox Name"
+            :rules="textFieldRulesDisplayName"
           ></v-text-field>
           <v-text-field
             v-if="scripts[chosenScript].requiresUserEmail && !scripts[chosenScript].multipleUsers"
@@ -165,7 +173,7 @@
 
           <!--Shared mailboxes text field-->
           <v-text-field
-            v-if="scripts[chosenScript].multipleUsers && !scripts[chosenScript].requiresDL"
+            v-if="scripts[chosenScript].multipleUsers && !scripts[chosenScript].requiresDL && !scripts[chosenScript].requiresDisplayName"
             v-model="newMailbox"
             prepend-inner-icon="fas fa-plus"
             :disabled="scripts[chosenScript].isLoading"
@@ -180,6 +188,7 @@
           </v-text-field>
 
           <!--DL text field-->
+          <v-card-text v-if="scripts[chosenScript].requiresDisplayName">Add users to grant them access to the new mailbox</v-card-text>
           <v-text-field
             v-if="scripts[chosenScript].multipleUsers && scripts[chosenScript].requiresDL"
             v-model="newMailbox"
@@ -327,6 +336,7 @@
             </v-chip>
           </v-card>
 
+          <!--Invalid users and mailboxes alerts-->
           <v-alert
             v-if="
               (invalidUsers.length > 0 || invalidMailboxes.length > 0) &&
@@ -336,6 +346,7 @@
             type="error"
             >At least one of the email addresses has an incorrect format.</v-alert
           >
+          <!--External users alert-->
           <v-alert
             v-if="
               externalDomainUsers.length > 0 &&
@@ -413,16 +424,7 @@
           <template #actions>
             <v-btn
               class="mb-2"
-              :disabled="
-                (scripts[chosenScript].multipleUsers &&
-                  (invalidUsers.length > 0 ||
-                    invalidMailboxes.length > 0 ||
-                    users.length === 0 ||
-                    mailboxes.length === 0)) ||
-                !areRulesMet ||
-                scripts[chosenScript].isLoading ||
-                !scripts[chosenScript].run
-              "
+              :disabled="isButtonDisabled"
               @click="runScript(chosenScript)"
               >Run Script</v-btn
             >
@@ -510,13 +512,11 @@ import ScriptHistory from '@/components/PLIPAssist/ScriptHistory.vue'
 import ScriptResult from '@/components/PLIPAssist/ScriptResult.vue'
 import ScriptResultMultipleLogs from '@/components/PLIPAssist/ScriptResultMultipleLogs.vue'
 //import { updateMonthlyUsageCount } from '../firebase.js'
-import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
 import { useTheme } from 'vuetify'
 import { useMyStore } from '@/stores/items.js'
 const store = useMyStore()
 const theme = useTheme()
-const auth = getAuth();
 const enableMaxMinWindowButtons = ref(false)
 const drawer = ref(true)
 const dialog = ref(false)
@@ -545,6 +545,7 @@ const automapping = ref(true)
 const newUser = ref('')
 const newMailbox = ref('')
 const mailbox = ref('')
+const displayName = ref('')
 const mailboxes = ref([])
 const externalDomainUsers = ref([])
 const textFieldRulesComputer = ref([
@@ -591,6 +592,15 @@ const textFieldRulesMailbox = ref([
       return 'Input must be a valid email address'
     }
   }
+])
+const textFieldRulesDisplayName = ref([
+  (value) => {
+      if (typeof value === 'undefined' || value === null || value === '') {
+        return 'Display Name is required'
+      } else {
+        return true
+      }
+    }
 ])
 const categories = ref([
   { title: 'Favorites', value: 'favorites', icon: 'fas fa-star', show: false },
@@ -984,8 +994,34 @@ const scripts = ref([
     requiresMailbox: false,
     requiresDL: true,
     multipleUsers: true,
-    requiresAutomappingValue: false
-    //  run: removeDLAccess,
+    requiresAutomappingValue: false,
+    run: 'remove-dl-access'
+  },
+  {
+    id: 16,
+    scriptCompleted: false,
+    scriptMessage: [],
+    scriptError: [],
+    isLoading: false,
+    loadingValue: 0,
+    loadingTime: 0,
+    longLoadingMessage: '',
+    interval: -1,
+    name: 'Mailbox - Create new shared mailbox',
+    description:
+      'Create a new shared mailbox',
+    icon: 'Test',
+    color: 'Test',
+    category: 'Exchange',
+    tags: 'Exchange, Outlook, Office, groupmailbox, group, access, add, mailbox, automap',
+    requiresNetworkID: false,
+    requiresUserEmail: false,
+    requiresComputer: false,
+    requiresMailbox: true,
+    multipleUsers: true,
+    requiresDisplayName: true,
+    requiresAutomappingValue: true,
+   // run: 'create-shared-mailbox',
   },
 ])
 
@@ -1044,6 +1080,10 @@ const areRulesMet = computed(() => {
     rulesMet = rulesMet && textFieldRulesMailbox.value.every((rule) => rule(mailbox.value) === true)
   }
 
+  if (scripts.value[chosenScript.value].requiresDisplayName) {
+    rulesMet = rulesMet && displayName.value !== ''
+  }
+
   if (scripts.value[chosenScript.value].requiresNetworkID) {
     rulesMet =
       rulesMet &&
@@ -1062,6 +1102,20 @@ const areRulesMet = computed(() => {
 
   return rulesMet
 })
+const isButtonDisabled = computed(() => {
+  const script = scripts.value[chosenScript.value];
+  return (
+    (script.multipleUsers &&
+      (invalidUsers.value.length > 0 ||
+        invalidMailboxes.value.length > 0 ||
+        (users.value.length === 0 && !script.requiresDisplayName) ||
+        (mailboxes.value.length === 0 && !script.requiresDisplayName))) ||
+    !areRulesMet.value ||
+    script.isLoading ||
+    !script.run
+  );
+});
+
 const invalidUsers = computed(() => {
   if (scripts.value[chosenScript.value].requiresDL) {
     return users.value.filter(
@@ -1263,6 +1317,7 @@ const removeUser = (index) => {
 }
 const clearInputsAndOutputs = () => {
   mailbox.value = ''
+  displayName.value = ''
   mailboxes.value = []
   userName.value.networkID = ''
   userName.value.email = ''
@@ -1376,6 +1431,7 @@ const runScript = async (id) => {
     email: userName.value.email,
     users: users.value,
     mailbox: mailbox.value,
+    mailboxDisplayName: displayName.value,
     mailboxes: mailboxes.value,
     automapping: automapping.value
   }
@@ -1509,18 +1565,6 @@ onMounted(() => {
     theme.global.name.value = themeName
     store.setTheme(themeName)
   })
-
-  onAuthStateChanged(auth, (user) => {
-    if (user) {
-      console.log("User logged in")
-    } else {
-      console.log('No user found')
-    }
-  })
-
-  if (!store.configDone) {
-    dialog.value = true
-  }
 })
 
 onBeforeUnmount(() => {

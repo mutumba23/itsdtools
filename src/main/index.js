@@ -13,6 +13,7 @@ import { getMailboxPermissions } from './scripts/exchange/getMailboxPermissions.
 import { giveMailboxAccess } from './scripts/exchange/giveMailboxAccess.js';
 import { removeMailboxAccess } from './scripts/exchange/removeMailboxAccess.js';
 import { giveDLAccess } from './scripts/exchange/giveDLAccess.js';
+import { removeDLAccess } from './scripts/exchange/removeDLAccess.js';
 import { installExchangeModule } from './scripts/exchange/installExchangeModule.js';
 
 
@@ -36,7 +37,6 @@ function setupIPCMainListeners(win, winSettings, winPLIPAssist) {
       switch (scriptName) {
         case 'install-exchange-module':
          result = await installExchangeModule(args);
-         console.log("test")
           break;
         case 'check-status':
           result = await checkStatus(args);
@@ -55,6 +55,9 @@ function setupIPCMainListeners(win, winSettings, winPLIPAssist) {
           break;
         case 'give-dl-access':
           result = await giveDLAccess(args);
+          break;
+        case 'remove-dl-access':
+          result = await removeDLAccess(args);
           break;
         default:
           throw new Error(`Unsupported script: ${scriptName}`);
