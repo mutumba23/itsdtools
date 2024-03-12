@@ -170,6 +170,7 @@ const sendVerificationEmail = async () => {
 const updateDisplayName = async (displayName) => {
   try {
     const user = auth.currentUser
+
     if (user) {
       await updateProfile(user, { displayName })
       console.log('Display name updated successfully')

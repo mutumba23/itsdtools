@@ -396,7 +396,7 @@
           :chosen-script="scripts[chosenScript]"
         />
       </div>
-      <MemoryGame v-if="scripts[chosenScript].longLoadingMessage" />
+      <MemoryGame v-if="scripts[chosenScript].longLoadingMessage && scripts[chosenScript].longLoadingMessage != ''" />
 
       <!--Sticky banner with Run script and Automapping actions-->
       <div class="sticky-bottom-banner">

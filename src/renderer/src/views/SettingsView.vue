@@ -16,15 +16,15 @@
       <template #append>
         <v-btn
           color="on-tertiary"
-          :class="showTrashbin ? 'bg-secondary' : ''"
-          icon="fas fa-trash"
-          @click="displayTrashbin"
-        ></v-btn>
-        <v-btn
-          color="on-tertiary"
           :class="showAddcustomlinks ? 'bg-secondary' : ''"
           icon="fas fa-link"
           @click="displayAddcustomlinks"
+        ></v-btn>
+        <v-btn
+          color="on-tertiary"
+          :class="showTrashbin ? 'bg-secondary' : ''"
+          icon="fas fa-trash"
+          @click="displayTrashbin"
         ></v-btn>
         <v-btn
           color="on-tertiary"
@@ -78,8 +78,8 @@ const showAdmin = ref(false)
 const showTrashbin = ref(false)
 const showPalette = ref(false)
 const isLoggedIn = ref(false)
-const showAddcustomlinks = ref(false)
-const showProfile = ref(true)
+const showAddcustomlinks = ref(true)
+const showProfile = ref(false)
 const storeUser = computed(() => store.user);
 watch(() => store.userLoggedIn, (newValue) => {
   isLoggedIn.value = newValue;

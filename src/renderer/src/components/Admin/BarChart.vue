@@ -35,7 +35,9 @@ const props = defineProps({
 // Define reactive variables
 const chartOptions = ref({
   responsive: true,
+  maintainAspectRatio: false,
 });
 
 const chartId = ref(`chart-${props.chartData._uid}`);
+
 </script>

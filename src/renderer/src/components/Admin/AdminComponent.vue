@@ -17,23 +17,27 @@
         return-object
         @update:model-value="updateChartData"
       ></v-select>
-      <div>
-      <BarChart v-if="totalChartData" :chart-data="totalChartData" class="mb-8" max-width="100" />
-      <BarChart v-if="monthlyChartData" :chart-data="monthlyChartData"/>
-    </div>
-      <div class="mx-auto text-center mb-8">
-        <v-btn
-          prepend-icon="fas fa-chevron-left"
-          size="x-small"
-          variant="text"
-          class="mr-2"
-          @click="previousMonth"
-          >Prev month</v-btn
-        >
-        <v-btn append-icon="fas fa-chevron-right" size="x-small" variant="text" @click="nextMonth"
-          >Next month</v-btn
-        >
+      <div class="chart-container pa-0 ma-0">
+        <BarChart v-if="totalChartData" :chart-data="totalChartData" class="mb-8" />
+        <BarChart v-if="monthlyChartData" :chart-data="monthlyChartData" />
+
+        <div class="mx-auto text-center">
+          <v-btn
+            prepend-icon="fas fa-chevron-left"
+            size="x-small"
+            variant="text"
+            class="mr-2 mb-4"
+            @click="previousMonth"
+            >Prev month</v-btn
+          >
+          <v-btn append-icon="fas fa-chevron-right" size="x-small" variant="text" class="mb-4" @click="nextMonth"
+            >Next month</v-btn
+          >
+        </div>
+
       </div>
+
+
     </v-card>
   </v-sheet>
 </template>
@@ -152,5 +156,11 @@ onMounted(async () => {
 .container {
   overflow-y: auto;
   overflow-x: hidden;
+}
+
+.chart-container {
+  position: relative;
+  height: 40vh;
+  width: 80vw;
 }
 </style>

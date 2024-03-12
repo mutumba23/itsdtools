@@ -378,24 +378,31 @@ function setupIPCMainListeners(win, winSettings, winPLIPAssist) {
     winSettings.show()
     const winBounds = win.getBounds()
     const screenBounds = screen.getPrimaryDisplay().workArea
-
+    const settingsBounds = winSettings.getBounds()
+  
     let x, y
-
-    if (
-      winBounds.x + winBounds.width + winSettings.getBounds().width + 10 >
-      screenBounds.x + screenBounds.width
-    ) {
-      x = winBounds.x - winSettings.getBounds().width - 10
+    const gap = 10;
+  
+    // If the secondary window goes off the right edge of the screen, check if it fits on the left
+    if (winBounds.x + winBounds.width + settingsBounds.width + gap > screenBounds.x + screenBounds.width) {
+      if (winBounds.x - settingsBounds.width - gap < screenBounds.x) {
+        // If it doesn't fit on the left either, place it at the very far right side of the screen
+        x = screenBounds.x + screenBounds.width - settingsBounds.width
+      } else {
+        // If it fits on the left, place it to the left of win
+        x = winBounds.x - settingsBounds.width - gap
+      }
     } else {
-      x = winBounds.x + winBounds.width + 10
+      x = winBounds.x + winBounds.width + gap
     }
-
-    y = winBounds.y
-
-    if (y + winSettings.getBounds().height > screenBounds.y + screenBounds.height) {
-      y = screenBounds.y + screenBounds.height - winSettings.getBounds().height
+  
+    // If the secondary window goes off the bottom edge of the screen, adjust y
+    if (winBounds.y + settingsBounds.height > screenBounds.y + screenBounds.height) {
+      y = screenBounds.y + screenBounds.height - settingsBounds.height
+    } else {
+      y = winBounds.y
     }
-
+  
     winSettings.setBounds({ x, y })
   })
 
@@ -511,7 +518,7 @@ function createWindow() {
     }
   }
   const dimensions = {
-    win: { width: 710, height: 545 },
+    win: { width: 780, height: 545 },
     winSettings: { width: 500, height: 670 },
     winPLIPAssist: { width: 800, height: 550 }
   }
@@ -530,7 +537,7 @@ function createWindow() {
     title: 'Settings Window',
     skipTaskbar: true,
     alwaysOnTop: true,
-    minWidth: 340
+    minWidth: 440
   })
   const winPLIPAssist = new BrowserWindow({
     ...browserWindowOptions,

@@ -412,7 +412,7 @@ const commonToolsButton = async (item) => {
           window.api.sendMessage('open-snipping-tool');
           break;
         case "iAssist":
-          openExternalLink("https://iassist.ingka.com/login/signin");
+          openExternalLink("https://iassist.ingka.com/login/signin", "fab fa-edge", { incognito: false });
           break;
         case "IMU":
           loading.value = true;
@@ -429,13 +429,13 @@ const commonToolsButton = async (item) => {
           }, 5000);
           break;
         case "MyIdentity":
-          openExternalLink("https://myidentity.apps.ikea.com");
+          openExternalLink("https://myidentity.apps.ikea.com", "fab fa-edge", { incognito: false });
           break;
         case "eGuides":
-          openExternalLink("https://eguides.ikea.com/Home?");
+          openExternalLink("https://eguides.ikea.com/Home?", "fab fa-edge", { incognito: false });
           break;
         case "Jobba":
-          openExternalLink("https://jobba.ingka.dev/");
+          openExternalLink("https://jobba.ingka.dev/", "fab fa-edge", { incognito: false });
           break;
         case "PLIPAssist":
           window.api.sendMessage('open-PLIPAssist');
@@ -486,7 +486,12 @@ onMounted(() => {
       console.log("Category not matched:", data.category);
       break;
   }
-});
+  });
+
+  //Uncomment below to create documents in the database
+  //const array = store.updatedCommonTools;
+  //const collectionName = "commonTools";
+  //await createDocumentsFromArray(array, collectionName);
 
 });
 //Mounted END
