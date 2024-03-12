@@ -13,6 +13,7 @@ import { useMyStore } from '@/stores/items.js'
 import { useTheme } from "vuetify";
 import { onMounted } from 'vue'
 import { useRouter } from 'vue-router';
+import { handleAuthStateChange } from './firebase.js'
 const theme = useTheme()
 const store = useMyStore() 
 const router = useRouter();
@@ -110,6 +111,37 @@ onMounted(() => {
   window.api.addEventListener("settingsOverlay", (data) => {
     store.settingsOverlay = data;
   });
+
+  window.api.addEventListener('user-logged-in', (data) => {
+    store.setUserLoggedIn(true)
+    store.setUser(data)
+  })
+
+  window.api.addEventListener('user-logged-out', () => {
+    store.setUserLoggedIn(false)
+    store.clearUser()
+  })
+
+  handleAuthStateChange((user) => {
+    if (user) {
+      // User is logged in
+      const userDetails = {
+        displayName: user.displayName,
+        email: user.email,
+        emailVerified: user.emailVerified,
+        photoURL: user.photoURL,
+        uid: user.uid,
+      }
+      store.setUser(userDetails)
+      store.setUserLoggedIn(true)
+      window.api.sendMessage("user-logged-in", userDetails)
+    } else {
+      // No user logged in
+      store.clearUser()
+      store.setUserLoggedIn(false)
+      window.api.sendMessage("user-logged-out")
+    }
+  })
 });
 //Mounted END
 ///////////////////////////////////////////////////

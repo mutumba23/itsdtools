@@ -186,7 +186,7 @@ const login = async (email, password) => {
   return signInWithEmailAndPassword(auth, email, password)
     .then(() => {
       // User is signed in
-      console.log('User is logged in:')
+      console.log('User is logged in')
     })
     .catch((error) => {
       // Handle errors

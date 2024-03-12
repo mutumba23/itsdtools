@@ -67,7 +67,7 @@
                         <v-card-title>About ITSD Tools</v-card-title>
                         <v-card-subtitle>Introducing our all-in-one IT Service Desk app!</v-card-subtitle>
                         <v-card-text>
-                        Streamline your daily tasks with quick access to essential tools such as remote assistance, chat and phone systems, and other common applications. With the ability to customize your browser preferences for each link, you'll save time and work more efficiently. Stay informed with real-time broadcast messages directly within the app.
+                        Streamline your daily tasks with quick access to essential tools such as remote assistance, chat and phone systems, and other common applications. With the ability to customize your browser preferences for each link, you'll save time and work more efficiently. Utilize the script section to perform your tasks with ease and speed.
                         </v-card-text>
 
                         <v-card-subtitle>Powering a Modern, Cross-Platform Desktop App with Electron and Vue.js</v-card-subtitle>

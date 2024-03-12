@@ -83,9 +83,18 @@ const onSubmit = () => {
   setTimeout(() => (loading.value = false), 2000)
 }
 
-const handleLogin = (email, password) => {
-  login(email, password);
-  window.api.sendMessage('authenticate-user')
+const handleLogin = async (email, password) => {
+  try {
+    await login(email, password); // Await the login function
+    // If login succeeds, clear any previous error messages
+    snackbarText.value = '';
+    window.api.sendMessage("reload-windows")
+  } catch (error) {
+    // If login fails, set error message
+    console.error('Error signing in:', error.message);
+    showSnackbar.value = true;
+    snackbarText.value = error.message;
+  }
 };
 
 const handleResetPassword = async (email) => {

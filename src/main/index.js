@@ -14,7 +14,7 @@ import { giveMailboxAccess } from './scripts/exchange/giveMailboxAccess.js';
 import { removeMailboxAccess } from './scripts/exchange/removeMailboxAccess.js';
 import { giveDLAccess } from './scripts/exchange/giveDLAccess.js';
 import { removeDLAccess } from './scripts/exchange/removeDLAccess.js';
-import { installExchangeModule } from './scripts/exchange/installExchangeModule.js';
+import { installExchangeModule } from './scripts/dependencies/installExchangeModule.js';
 
 
 // Enable auto-launch
@@ -281,15 +281,27 @@ function setupIPCMainListeners(win, winSettings, winPLIPAssist) {
   }
 
   //Authenticate User
-  ipcMain.on('authenticate-user', (event, data) => {
-    winSettings.webContents.send('authenticate-user', data)
-    winPLIPAssist.webContents.send('authenticate-user', data)
+  ipcMain.on('user-logged-in', (event, data) => {
+    winSettings.webContents.send('user-logged-in', data)
+    winPLIPAssist.webContents.send('user-logged-in', data)
+    win.webContents.send('user-logged-in', data)
   })
 
-  ipcMain.on('user-logged-out', (event, data) => {
-    win.webContents.send('user-logged-out', data)
-    winPLIPAssist.webContents.send('user-logged-out', data)
+  ipcMain.on('user-logged-out', () => {
+    win.webContents.send('user-logged-out')
+    winPLIPAssist.webContents.send('user-logged-out')
+    winSettings.webContents.send('user-logged-out')
   })
+
+  ipcMain.on('reload-windows', () => {
+    // Reload each window
+    if (winSettings) {
+      winSettings.reload();
+    }
+    if (winPLIPAssist) {
+      winPLIPAssist.reload();
+    }
+  });
 
   //Hide win
   ipcMain.on('minimize', () => {

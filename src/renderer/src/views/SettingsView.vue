@@ -69,19 +69,21 @@ import TrashbinComponent from '@/components/TrashbinComponent.vue'
 import LoginComponent from '@/components/LoginComponent.vue'
 import AdminComponent from '@/components/Admin/AdminComponent.vue'
 import ProfileComponent from '@/components/Admin/ProfileComponent.vue'
-import { handleAuthStateChange } from '../firebase.js'
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useTheme } from 'vuetify'
 import { useMyStore } from '@/stores/items.js'
 const store = useMyStore()
 const theme = useTheme()
 const showAdmin = ref(false)
-const showTrashbin = ref(true)
+const showTrashbin = ref(false)
 const showPalette = ref(false)
-const showAddcustomlinks = ref(false)
-const showProfile = ref(false)
 const isLoggedIn = ref(false)
+const showAddcustomlinks = ref(false)
+const showProfile = ref(true)
 const storeUser = computed(() => store.user);
+watch(() => store.userLoggedIn, (newValue) => {
+  isLoggedIn.value = newValue;
+});
 
 const isAdmin = computed(() => {
   // Check if store.user exists and has an email property
@@ -153,18 +155,7 @@ onMounted(() => {
   })
   store.setTheme(theme.global.name.value)
 
-  handleAuthStateChange((user) => {
-    if (user) {
-      // User is logged in
-      isLoggedIn.value = true
-      store.setUser(user)
-    } else {
-      // No user logged in
-      isLoggedIn.value = false
-      store.clearUser()
-    }
-  })
-
+  isLoggedIn.value = store.userLoggedIn
 
 })
 

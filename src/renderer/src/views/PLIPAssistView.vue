@@ -511,7 +511,7 @@ import MemoryGame from '@/components/PLIPAssist/MemoryGame.vue'
 import ScriptHistory from '@/components/PLIPAssist/ScriptHistory.vue'
 import ScriptResult from '@/components/PLIPAssist/ScriptResult.vue'
 import ScriptResultMultipleLogs from '@/components/PLIPAssist/ScriptResultMultipleLogs.vue'
-//import { updateMonthlyUsageCount } from '../firebase.js'
+import { updateMonthlyUsageCount } from '../firebase.js'
 import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
 import { useTheme } from 'vuetify'
 import { useMyStore } from '@/stores/items.js'
@@ -1411,7 +1411,7 @@ const startBuffer = () => {
   }, 2000)
 }
 const runScript = async (id) => {
- // await updateMonthlyUsageCount(id, 'scripts');
+  await updateMonthlyUsageCount(id, 'scripts');
   resetScriptState(id)
   scripts.value[id].isLoading = true
   window.api.sendMessage('isLoading', true)

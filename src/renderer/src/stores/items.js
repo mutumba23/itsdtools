@@ -165,7 +165,7 @@ export const useMyStore = defineStore('ITSDToolsStore', {
       show: false,
       url: null
     },
-    admins: ['philip.nilsson@ingka.ikea.com'],
+    admins: ['philip.nilsson@ingka.ikea.com', 'alexander.hulten@ingka.ikea.com'],
     userLoggedIn: false,
     user: null,
     emailSent: false,

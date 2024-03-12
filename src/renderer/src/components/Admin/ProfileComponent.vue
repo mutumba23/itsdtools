@@ -1,4 +1,14 @@
 <template>
+<v-snackbar
+    v-model="showSnackbar"
+    :timeout="3000"
+    color="secondary"
+    location="top"
+    rounded="pill"
+  >
+    {{ snackbarText }}
+  </v-snackbar>
+
   <v-sheet v-if="store.storeUser" style="height: 90vh">
     <v-card flat class="pa-2 mt-2 show-scrollbar container" style="height: 100%">
       <v-card-title>Profile</v-card-title>
@@ -10,7 +20,11 @@
               label="Display Name"
               outlined
               dense
-            ></v-text-field>
+            >
+            <template #append-inner>
+              <v-btn size="small" @click="handleDisplayNameChange">Update</v-btn>
+            </template>
+          </v-text-field>
           </v-col>
           <v-col cols="12" md="6">
             <v-text-field
@@ -35,17 +49,31 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount } from 'vue'
+import { computed, ref } from 'vue'
 import { useMyStore } from '@/stores/items.js'
 import { signout, sendVerificationEmail, updateDisplayName } from '../../firebase.js'
 const store = useMyStore()
 const storeUser = computed(() => store.user);
 const emailSent = computed(() => store.emailSent);
+const showSnackbar = ref(false)
+const snackbarText = ref('')
 
 
 const handleSignout = () => {
+  window.api.sendMessage("user-logged-out")
+  window.api.sendMessage("minimize-winSettings")
   signout();
-  store.clearUser();
+};
+
+const handleDisplayNameChange = () => {
+  updateDisplayName(storeUser.value.displayName)
+    .then(() => {
+      showSnackbar.value = true
+      snackbarText.value = 'Display name updated'
+    })
+    .catch((error) => {
+      console.error('Error updating display name:', error);
+    });
 };
 
 const handleSendVerificationEmail = () => {
@@ -58,19 +86,6 @@ const handleSendVerificationEmail = () => {
       console.error('Error sending verification email:', error);
     });
 };
-const handleUpdateDisplayName = () => {
-  updateDisplayName(storeUser.value.displayName)
-    .then(() => {
-      console.log('Display name updated successfully');
-    })
-    .catch((error) => {
-      console.error('Error updating display name:', error);
-    });
-};
-
-onBeforeUnmount(() => {
-  handleUpdateDisplayName();
-});
 
 
 </script>

@@ -2,10 +2,10 @@
   <v-app-bar density="compact" color="tertiary" rounded class="drag">
     <v-app-bar-title>ITSD Tools</v-app-bar-title>
     <template #prepend>
-      <v-btn color="on-tertiary" icon="fas fa-gear" @click="openSettings"></v-btn>
+      <v-btn v-if="isLoggedIn" color="on-tertiary" icon="fas fa-gear" @click="openSettings"></v-btn>
       <v-btn color="on-tertiary" icon="fas fa-info" @click="openAbout"></v-btn>
     </template>
-    
+
     <template #append>
       <v-btn
         color="on-tertiary"
@@ -13,11 +13,7 @@
         icon="fas fa-thumbtack"
         @click="toggleAlwaysOnTop"
       ></v-btn>
-      <v-btn
-        color="on-tertiary"
-        icon="fas fa-window-minimize"
-        @click="minimize"
-      ></v-btn>
+      <v-btn color="on-tertiary" icon="fas fa-window-minimize" @click="minimize"></v-btn>
       <v-btn color="on-tertiary" icon="fas fa-xmark" @click="closeApp"></v-btn>
     </template>
   </v-app-bar>
@@ -36,56 +32,60 @@
 
 <script setup>
 import { useMyStore } from '@/stores/items.js'
-import { ref, onMounted, computed } from 'vue'
-    const store = useMyStore() // Access Pinia store
-    const snackbar = ref(false);
-    const snackbarText = ref('');
+import { ref, onMounted, computed, watch } from 'vue'
+const store = useMyStore() // Access Pinia store
+const snackbar = ref(false)
+const snackbarText = ref('')
+const isLoggedIn = ref(false)
 
-    onMounted(() => {
-      if (store.isPinned) {
-        window.api.toggleAlwaysOnTop(true)
-      }
-    });
+onMounted(() => {
+  if (store.isPinned) {
+    window.api.toggleAlwaysOnTop(true)
+  }
+  isLoggedIn.value = store.userLoggedIn
+})
 
-    const isPinnedClass = computed(() => {
-      return store.isPinned ? 'bg-secondary' : ''
-    })
+watch(() => store.userLoggedIn, (newValue) => {
+    isLoggedIn.value = newValue;
+  });
 
-    const toggleAlwaysOnTop = () => {
-      store.toggleIsPinned(); // Toggle isPinned state using the action
-      const newValue = store.isPinned; // Get the updated value from the store
-      const snackbarText = newValue ? 'Window pinned' : 'Window unpinned';
-      openSnackbar(snackbarText);
-      window.api.sendMessage('toggle-always-on-top', newValue);
-    };
+const isPinnedClass = computed(() => {
+  return store.isPinned ? 'bg-secondary' : ''
+})
 
-    const openSnackbar = (text) => {
-      // Set the snackbar text
-      snackbarText.value = text;
-      // Open the snackbar
-      snackbar.value = true;
-    };
+const toggleAlwaysOnTop = () => {
+  store.toggleIsPinned() // Toggle isPinned state using the action
+  const newValue = store.isPinned // Get the updated value from the store
+  const snackbarText = newValue ? 'Window pinned' : 'Window unpinned'
+  openSnackbar(snackbarText)
+  window.api.sendMessage('toggle-always-on-top', newValue)
+}
 
-    const closeApp = () => {
-      window.api.sendMessage('quit-app');
-    }
+const openSnackbar = (text) => {
+  // Set the snackbar text
+  snackbarText.value = text
+  // Open the snackbar
+  snackbar.value = true
+}
 
-    const openSettings = () => {
-      window.api.sendMessage('open-settings')
-      store.settingsOverlay = true;
-    }
+const closeApp = () => {
+  window.api.sendMessage('quit-app')
+}
 
-    const openAbout = () => {
-    //  window.api.sendMessage('open-about')
-      store.showAbout = true;
-    }
+const openSettings = () => {
+  window.api.sendMessage('open-settings')
+  store.settingsOverlay = true
+}
 
-    const minimize = () => {
-      window.api.sendMessage('minimize')
-    }
+const openAbout = () => {
+  //  window.api.sendMessage('open-about')
+  store.showAbout = true
+}
+
+const minimize = () => {
+  window.api.sendMessage('minimize')
+}
 </script>
-
-
 
 <style>
 /* The switch - the box around the slider */

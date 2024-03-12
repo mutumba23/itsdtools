@@ -220,7 +220,7 @@
 <script setup>
 import { useMyStore } from '@/stores/items.js'
 import { computed, ref, onMounted } from 'vue'
-//import { updateMonthlyUsageCount } from '../firebase.js'
+import { updateMonthlyUsageCount } from '../firebase.js'
 const store = useMyStore()
 
 ///////////////////////////////////////////////////
@@ -358,7 +358,7 @@ const communicationButton = async (item) => {
   } else {
     window.api.sendMessage('open-external-link', item.link, item.browserIcon, { incognito: false });
   }
-  //await updateMonthlyUsageCount(item.id, 'communications')
+  await updateMonthlyUsageCount(item.id, 'communications')
 }
 const openExternalLink = (link, browser, incognito) => {
   console.log(incognito)
@@ -400,7 +400,7 @@ const remoteAssistanceButton = async (button) => {
     default:
       break
   }
- // await updateMonthlyUsageCount(button.id, 'remoteAssistance')
+  await updateMonthlyUsageCount(button.id, 'remoteAssistance')
 }
 const runRANO = () => {
   window.api.sendMessage('run-rano', computername.value)
@@ -443,7 +443,7 @@ const commonToolsButton = async (item) => {
         default:
           break;
       }
-   //   await updateMonthlyUsageCount(item.id, 'commonTools');
+      await updateMonthlyUsageCount(item.id, 'commonTools');
 }
 
 //Methods END
