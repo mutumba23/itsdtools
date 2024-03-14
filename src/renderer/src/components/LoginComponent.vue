@@ -54,7 +54,7 @@
     </span>
     <v-card-actions>
       <v-spacer></v-spacer>
-      <v-btn :disabled="!isEmailValid" text @click="handleResetPassword">Forgot Password?</v-btn>
+      <v-btn :disabled="!isEmailValid" text @click="handleResetPassword(email)">Forgot Password?</v-btn>
     </v-card-actions>
   </v-card>
 </template>

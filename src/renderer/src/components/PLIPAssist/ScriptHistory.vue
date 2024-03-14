@@ -14,7 +14,8 @@
           <v-expansion-panel
             :class="{
               'text-success': script.successMessages && script.successMessages.length > 0,
-              'text-error': !script.successMessages || script.successMessages.length === 0
+              'text-error': !script.successMessages || script.successMessages.length === 0,
+              'even-panel': index % 2 === 1
             }"
           >
             <v-expansion-panel-title>
@@ -23,7 +24,7 @@
               {{ script.scriptName }}
             </v-expansion-panel-title>
             <v-expansion-panel-text>
-              <v-card class="bg-secondary pa-2">
+              <v-card flat class="pa-2">
                 <v-card-title>Inputs</v-card-title>
                 <v-card-subtitle
                   v-if="
@@ -54,7 +55,7 @@
                   ><span class="font-weight-bold">Mailbox:</span>
                   {{ script.mailbox }}</v-card-subtitle
                 >
-                <v-card-subtitle v-if="script.mailboxes != null && script.mailboxes.length > 0"
+                <v-card-subtitle v-if="script.mailboxes != null && script.mailboxes.length > 0 && script.name === 'Mailbox - Give permissions'"
                   ><span class="font-weight-bold">Automapping:</span>
                   {{ script.automapping }}</v-card-subtitle
                 >
@@ -73,31 +74,35 @@
                       }}</v-chip></v-expansion-panel-title
                     >
                     <v-expansion-panel-text>
-                      <v-chip
-                        v-for="(user, userindex) in script.users"
-                        :key="userindex"
-                        class="mb-1 ml-2"
-                      >
-                        {{ user }}
-                      </v-chip>
+                      <div class="align-start flex-column d-flex">
+                        <v-chip
+                          v-for="(user, userindex) in script.users"
+                          :key="userindex"
+                          class="mb-1 ml-2"
+                        >
+                          {{ user }}
+                        </v-chip>
+                      </div>
                     </v-expansion-panel-text>
                   </v-expansion-panel>
 
                   <v-expansion-panel v-if="script.mailboxes != null && script.mailboxes.length > 0">
                     <v-expansion-panel-title
-                      >Mailboxes
+                      >Mailboxes/DLs
                       <v-chip class="ml-2">{{
                         script.mailboxes.length
                       }}</v-chip></v-expansion-panel-title
                     >
                     <v-expansion-panel-text>
-                      <v-chip
-                        v-for="(mailbox, mailboxindex) in script.mailboxes"
-                        :key="mailboxindex"
-                        class="mb-1 ml-2"
-                      >
-                        {{ mailbox }}
-                      </v-chip>
+                      <div class="align-start flex-column d-flex">
+                        <v-chip
+                          v-for="(mailbox, mailboxindex) in script.mailboxes"
+                          :key="mailboxindex"
+                          class="mb-1 ml-2"
+                        >
+                          {{ mailbox }}
+                        </v-chip>
+                      </div>
                     </v-expansion-panel-text>
                   </v-expansion-panel>
                 </v-expansion-panels>
@@ -105,7 +110,8 @@
 
               <v-card
                 v-if="script.successMessages.length < 3 && script.errorMessages.length < 3"
-                class="bg-secondary pa-2 mt-2"
+                class="bg-secondary pa-2 mt-2 d-flex flex-column"
+                flat
               >
                 <v-card-title>
                   Output
@@ -129,7 +135,7 @@
                 <div
                   v-for="(message, successindex) in script.successMessages"
                   :key="successindex"
-                  class="d-inline-block"
+                  class="align-start flex-column d-flex"
                 >
                   <v-alert v-if="message" type="success" class="mt-2">
                     {{ message }}
@@ -138,7 +144,7 @@
                 <div
                   v-for="(message, errorindex) in script.errorMessages"
                   :key="errorindex"
-                  class="d-inline-block"
+                  class="align-start flex-column d-flex"
                 >
                   <v-alert v-if="message" type="error" class="mt-2">
                     {{ message }}
@@ -247,5 +253,9 @@ const copyLogsToClipboard = (script) => {
 .container {
   overflow-y: auto;
   overflow-x: hidden;
+}
+
+.even-panel {
+  filter: brightness(80%); /* Darken the background color by 10% */
 }
 </style>

@@ -182,8 +182,11 @@
             label="Shared mailbox address"
             placeholder="example@inter.ikea.com"
             hint="You can add multiple mailboxes. Use comma or semicolon as a separator or copy/paste from Excel cells."
+            class="mb-4"
             @paste="onPaste($event, mailboxes, 'mailboxes')"
             @keydown.enter.prevent="addMailbox"
+            @keydown.tab="addMailbox"
+            @blur="addMailbox"
           >
           </v-text-field>
 
@@ -198,9 +201,12 @@
             clearable
             label="Distribution list address"
             placeholder="example@inter.ikea.com"
-            persistent-hint
+            hint="You can add multiple DLs. Use comma or semicolon as a separator or copy/paste from Excel cells."
+            class="mb-4"
             @paste="onPaste($event, mailboxes, 'mailboxes')"
             @keydown.enter.prevent="addMailbox"
+            @keydown.tab="addMailbox"
+            @blur="addMailbox"
           >
           </v-text-field>
 
@@ -215,8 +221,11 @@
             label="User email address"
             placeholder="firstname.lastname@inter.ikea.com"
             hint="You can add multiple users. Use comma or semicolon as a separator or copy/paste from Excel cells."
+            class="mb-4"
             @paste="onPaste($event, users, 'users')"
             @keydown.enter.prevent="addUser"
+            @keydown.tab="addUser"
+            @blur="addUser"
           >
           </v-text-field>
 
@@ -246,17 +255,19 @@
                 </template>
               </v-tooltip>
             </v-card-title>
-            <v-chip
-              v-for="(sharedmailbox, index) in mailboxes"
-              :key="index"
-              class="mb-1 ml-2 animate__backInDown animate__animated"
-              :class="{ 'bg-error': invalidMailboxes.includes(sharedmailbox) }"
-            >
-              {{ sharedmailbox }}
-              <v-icon class="ml-1" color="primary" size="small" @click="removeMailbox(index)"
-                >fas fa-circle-xmark</v-icon
+            <div class="align-start flex-column d-flex">
+              <v-chip
+                v-for="(sharedmailbox, index) in mailboxes"
+                :key="index"
+                class="mb-1 ml-2 animate__backInDown animate__animated"
+                :class="{ 'bg-error': invalidMailboxes.includes(sharedmailbox) }"
               >
-            </v-chip>
+                {{ sharedmailbox }}
+                <v-icon class="ml-1" color="primary" size="small" @click="removeMailbox(index)"
+                  >fas fa-circle-xmark</v-icon
+                >
+              </v-chip>
+            </div>
           </v-card>
 
           <!--DL list-->
@@ -284,17 +295,19 @@
                 </template>
               </v-tooltip>
             </v-card-title>
-            <v-chip
-              v-for="(distributionlist, index) in mailboxes"
-              :key="index"
-              class="mb-1 ml-2 animate__backInDown animate__animated"
-              :class="{ 'bg-error': invalidMailboxes.includes(distributionlist) }"
-            >
-              {{ distributionlist }}
-              <v-icon class="ml-1" color="primary" size="small" @click="removeMailbox(index)"
-                >fas fa-circle-xmark</v-icon
+            <div class="align-start flex-column d-flex">
+              <v-chip
+                v-for="(distributionlist, index) in mailboxes"
+                :key="index"
+                class="mb-1 ml-2 animate__backInDown animate__animated"
+                :class="{ 'bg-error': invalidMailboxes.includes(distributionlist) }"
               >
-            </v-chip>
+                {{ distributionlist }}
+                <v-icon class="ml-1" color="primary" size="small" @click="removeMailbox(index)"
+                  >fas fa-circle-xmark</v-icon
+                >
+              </v-chip>
+            </div>
           </v-card>
 
           <!--Users list-->
@@ -320,20 +333,22 @@
                 </template>
               </v-tooltip>
             </v-card-title>
-            <v-chip
-              v-for="(user, index) in users"
-              :key="index"
-              class="mb-1 ml-2 animate__backInDown animate__animated"
-              :class="{
-                'bg-error': invalidUsers.includes(user),
-                'bg-warning': externalDomainUsers.includes(user) && !invalidUsers.includes(user)
-              }"
-            >
-              {{ user }}
-              <v-icon class="ml-1" color="primary" size="small" @click="removeUser(index)"
-                >fas fa-circle-xmark</v-icon
+            <div class="align-start flex-column d-flex">
+              <v-chip
+                v-for="(user, index) in users"
+                :key="index"
+                class="mb-1 ml-2 animate__backInDown animate__animated"
+                :class="{
+                  'bg-error': invalidUsers.includes(user),
+                  'bg-warning': externalDomainUsers.includes(user) && !invalidUsers.includes(user)
+                }"
               >
-            </v-chip>
+                {{ user }}
+                <v-icon class="ml-1" color="primary" size="small" @click="removeUser(index)"
+                  >fas fa-circle-xmark</v-icon
+                >
+              </v-chip>
+            </div>
           </v-card>
 
           <!--Invalid users and mailboxes alerts-->
@@ -470,7 +485,7 @@
                   size="small"
                   :icon="isFavorite(script.id) ? 'fas fa-star' : 'far fa-star'"
                   variant="plain"
-                  @click="toggleFavorite(script.id)"
+                  @click.stop="toggleFavorite(script.id)"
                 ></v-btn
               ></v-card-title>
               <v-card-text>{{ script.description }}</v-card-text>
@@ -491,7 +506,7 @@
                   size="small"
                   :icon="isFavorite(script.id) ? 'fas fa-star' : 'far fa-star'"
                   variant="plain"
-                  @click="toggleFavorite(script.id)"
+                  @click.stop="toggleFavorite(script.id)"
                 ></v-btn
               ></v-card-title>
               <v-card-text>{{ script.description }}</v-card-text>

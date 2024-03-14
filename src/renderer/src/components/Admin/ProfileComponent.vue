@@ -19,7 +19,7 @@
         <v-btn v-if="!storeUser.emailVerified" @click="handleSendVerificationEmail">
           <span v-if="!emailSent">Verify email</span><span v-else>Resend verification email</span>
         </v-btn>
-        <v-btn @click="handleResetPassword">Reset password</v-btn>
+        <v-btn @click="handleResetPassword(storeUser.email)">Reset password</v-btn>
         <v-btn color="error" @click="handleSignout">Sign out</v-btn>
       </v-card-actions>
     </v-card>
