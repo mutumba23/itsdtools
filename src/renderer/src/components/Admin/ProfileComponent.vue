@@ -9,7 +9,7 @@
     {{ snackbarText }}
   </v-snackbar>
 
-  <v-sheet v-if="store.storeUser" style="height: 90vh">
+  <v-sheet v-if="storeUser" style="height: 90vh">
     <v-card flat class="pa-2 mt-2 show-scrollbar container" style="height: 100%">
       <v-card-text>
         <v-icon size="small" class="mr-2">fas fa-user</v-icon>{{ storeUser.email }}

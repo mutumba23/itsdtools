@@ -29,6 +29,7 @@ try {
     # Collect non-existing users and mailboxes
     $nonExistingUsers = $tempUsers | Where-Object { $_ -like "User does not exist:*" }
     $nonExistingMailboxes = $tempMailboxes | Where-Object { $_ -like "Mailbox does not exist:*" }
+    
 
     # Output a single message for non-existing users and mailboxes
     if ($nonExistingUsers) {
@@ -43,31 +44,38 @@ try {
     $existingMailboxes = $tempMailboxes | Where-Object { $_ -notlike "Mailbox does not exist:*" }
 
     foreach ($mailbox in $existingMailboxes) {
-        foreach ($user in $existingUsers) {
-            try {
-                $fullAccessPermission = Get-EXOMailboxPermission -Identity $mailbox -User $user -ErrorAction SilentlyContinue
-                if ($null -ne $fullAccessPermission) {
-                    Write-Output ("INFO|AlreadyHasFullAccess|User:$user|Mailbox:$mailbox|$fullAccessPermission")
-                    Remove-MailboxPermission -Identity $mailbox -User $user -AccessRights FullAccess -Confirm:$false
+        $mailboxDetails = Get-Mailbox -Identity $mailbox -ErrorAction SilentlyContinue
+        if ($mailboxDetails.RecipientTypeDetails -eq 'SharedMailbox') {
+             
+            foreach ($user in $existingUsers) {
+                try {
+                    $fullAccessPermission = Get-EXOMailboxPermission -Identity $mailbox -User $user -ErrorAction SilentlyContinue
+                    if ($null -ne $fullAccessPermission) {
+                        Write-Output ("INFO|AlreadyHasFullAccess|User:$user|Mailbox:$mailbox|$fullAccessPermission")
+                        Remove-MailboxPermission -Identity $mailbox -User $user -AccessRights FullAccess -Confirm:$false
+                    }
+                    $fullAccessResult = Add-MailboxPermission -Identity $mailbox -User $user -AccessRights FullAccess -AutoMapping $autoMapping -ErrorAction Stop
+                    Write-Output ("SUCCESS|FullAccess|User:$user|Mailbox:$mailbox|$fullAccessResult")
+                } catch {
+                    Write-Output ("ERROR|FailedToAdd|User:$user|Mailbox:$mailbox|Error:$($_.Exception.Message)")
                 }
-                $fullAccessResult = Add-MailboxPermission -Identity $mailbox -User $user -AccessRights FullAccess -AutoMapping $autoMapping -ErrorAction Stop
-                Write-Output ("SUCCESS|FullAccess|User:$user|Mailbox:$mailbox|$fullAccessResult")
-            } catch {
-                Write-Output ("ERROR|FailedToAdd|User:$user|Mailbox:$mailbox|Error:$($_.Exception.Message)")
-            }
-    
-            try {
-                $sendAsResult = Add-RecipientPermission -Identity $mailbox -Trustee $user -AccessRights SendAs -Confirm:$false -ErrorAction Stop
-                Write-Output ("SUCCESS|SendAs|User:$user|Mailbox:$mailbox|$sendAsResult")
-            } catch {
-                if ($_.Exception.Message -like "*already has*" -or $_.Exception.Message -like "*already is*") {
-                    Write-Output ("SUCCESS|AlreadyHasSendAs|User:$user|Mailbox:$mailbox")
-                } elseif ($_.Exception.Message -like "*The appropriate access control entry is already present*") {
-                    Write-Output ("SUCCESS|AlreadyPresent|User:$user|Mailbox:$mailbox")
-                } else {
-                    Write-Output ("ERROR|Failed|User:$user|Mailbox:$mailbox|Error:$($_.Exception.Message)")
+        
+                try {
+                    $sendAsResult = Add-RecipientPermission -Identity $mailbox -Trustee $user -AccessRights SendAs -Confirm:$false -ErrorAction Stop
+                    Write-Output ("SUCCESS|SendAs|User:$user|Mailbox:$mailbox|$sendAsResult")
+                } catch {
+                    if ($_.Exception.Message -like "*already has*" -or $_.Exception.Message -like "*already is*") {
+                        Write-Output ("SUCCESS|AlreadyHasSendAs|User:$user|Mailbox:$mailbox")
+                    } elseif ($_.Exception.Message -like "*The appropriate access control entry is already present*") {
+                        Write-Output ("SUCCESS|AlreadyPresent|User:$user|Mailbox:$mailbox")
+                    } else {
+                        Write-Output ("ERROR|Failed|User:$user|Mailbox:$mailbox|Error:$($_.Exception.Message)")
+                    }
                 }
-            }
+            } 
+
+        } else {
+            Write-Output ("ERROR|NotASharedMailbox|Mailbox:$mailbox")
         }
     }
     

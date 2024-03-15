@@ -22,6 +22,9 @@ const api = {
       }
     });
   },
+  removeEventListener: (eventName, callback) => {
+    ipcRenderer.off(eventName, callback);
+  },
   navigateRoute: (route) => {
     ipcRenderer.send('navigate-route', route);
   },

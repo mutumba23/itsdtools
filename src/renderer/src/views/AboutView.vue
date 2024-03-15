@@ -82,12 +82,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import axios from "axios";
-import { useTheme } from 'vuetify'
 import { useMyStore } from '@/stores/items.js'
 const store = useMyStore()
-const theme = useTheme()
 const showSnackbar = ref(false)
 const showVersionHistory = ref(false)
 const snackbarMessage = ref('')
@@ -95,20 +93,12 @@ const latestRelease = ref(null)
 const releases = ref([])
 const appVersion = ref('')
 
-onMounted(() => {
-  window.api.addEventListener("toggle-theme", (data) => {
-    theme.global.name.value =
-        theme.global.name.value === "myCustomLightTheme"
-          ? "myCustomDarkTheme"
-          : "myCustomLightTheme";
-      const themeName = data;
-      theme.global.name.value = themeName;
-      store.setTheme(themeName);
-  });
-
-  window.api.addEventListener("app-version", (data) => {
+const appVersionHandler = (data) => {
     appVersion.value = data;
-  });
+}
+
+onMounted(() => {
+  window.api.addEventListener("app-version", appVersionHandler)
 
   window.api.sendMessage('app-version');
 
@@ -126,6 +116,10 @@ onMounted(() => {
         console.log(error);
       });
 });
+
+onBeforeUnmount(() => {
+  window.api.removeEventListener("app-version", appVersionHandler)
+})
 
 
 

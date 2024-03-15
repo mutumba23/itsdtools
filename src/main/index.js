@@ -14,6 +14,7 @@ import { giveMailboxAccess } from './scripts/exchange/giveMailboxAccess.js';
 import { removeMailboxAccess } from './scripts/exchange/removeMailboxAccess.js';
 import { giveDLAccess } from './scripts/exchange/giveDLAccess.js';
 import { removeDLAccess } from './scripts/exchange/removeDLAccess.js';
+import { addDLOwners } from './scripts/exchange/addDLOwners.js';
 import { installExchangeModule } from './scripts/dependencies/installExchangeModule.js';
 
 
@@ -58,6 +59,9 @@ function setupIPCMainListeners(win, winSettings, winPLIPAssist) {
           break;
         case 'remove-dl-access':
           result = await removeDLAccess(args);
+          break;
+        case 'add-dl-owners':
+          result = await addDLOwners(args);
           break;
         default:
           throw new Error(`Unsupported script: ${scriptName}`);

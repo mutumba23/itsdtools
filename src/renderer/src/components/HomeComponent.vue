@@ -219,7 +219,7 @@
 
 <script setup>
 import { useMyStore } from '@/stores/items.js'
-import { computed, ref, onMounted } from 'vue'
+import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
 import { updateMonthlyUsageCount } from '../firebase.js'
 const store = useMyStore()
 
@@ -445,6 +445,39 @@ const commonToolsButton = async (item) => {
       }
       await updateMonthlyUsageCount(item.id, 'commonTools');
 }
+const dragEndHandler = () => {
+    const dropContainer = document.getElementById("dropContainer");
+    dropContainer.classList.remove("dragging");
+}
+const removedItemHandler = (data) => {
+    // Handle removed items based on their category
+    switch (data.category) {
+      case "communications":
+        store.toggleItemRemovedState({
+          category: "communications",
+          id: data.id,
+          value: true,
+        });
+        break;
+      case "remoteAssistance":
+        store.toggleItemRemovedState({
+          category: "remoteAssistance",
+          id: data.id,
+          value: true,
+        });
+        break;
+      case "commonTools":
+        store.toggleItemRemovedState({
+          category: "commonTools",
+          id: data.id,
+          value: true,
+        });
+        break;
+      default:
+        console.log("Category not matched:", data.category);
+        break;
+    }
+  }
 
 //Methods END
 ///////////////////////////////////////////////////
@@ -454,39 +487,8 @@ const commonToolsButton = async (item) => {
 ///////////////////////////////////////////////////
 onMounted(() => {
   store.UPDATE_COMMON_TOOLS();
-  window.api.addEventListener("drag-end", () => {
-    const dropContainer = document.getElementById("dropContainer");
-    dropContainer.classList.remove("dragging");
-  });
-  window.api.addEventListener("removed-item", (data) => {
-  // Handle removed items based on their category
-  switch (data.category) {
-    case "communications":
-      store.toggleItemRemovedState({
-        category: "communications",
-        id: data.id,
-        value: true,
-      });
-      break;
-    case "remoteAssistance":
-      store.toggleItemRemovedState({
-        category: "remoteAssistance",
-        id: data.id,
-        value: true,
-      });
-      break;
-    case "commonTools":
-      store.toggleItemRemovedState({
-        category: "commonTools",
-        id: data.id,
-        value: true,
-      });
-      break;
-    default:
-      console.log("Category not matched:", data.category);
-      break;
-  }
-  });
+  window.api.addEventListener("drag-end", dragEndHandler)
+  window.api.addEventListener("removed-item", removedItemHandler)
 
   //Uncomment below to create documents in the database
   //const array = store.updatedCommonTools;
@@ -494,6 +496,11 @@ onMounted(() => {
   //await createDocumentsFromArray(array, collectionName);
 
 });
+
+onBeforeUnmount(() => {
+  window.api.removeEventListener("drag-end", dragEndHandler)
+  window.api.removeEventListener("removed-item", removedItemHandler)
+})
 //Mounted END
 ///////////////////////////////////////////////////
 

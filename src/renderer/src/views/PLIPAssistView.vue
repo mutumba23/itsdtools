@@ -210,9 +210,9 @@
           >
           </v-text-field>
 
-          <!--Mailbox - Users text field-->
+          <!--Mailbox/DL - Users add text field-->
           <v-text-field
-            v-if="scripts[chosenScript].multipleUsers"
+            v-if="scripts[chosenScript].multipleUsers && !scripts[chosenScript].requiresOwner"
             v-model="newUser"
             prepend-inner-icon="fas fa-plus"
             :disabled="scripts[chosenScript].isLoading"
@@ -229,6 +229,44 @@
           >
           </v-text-field>
 
+           <!--Mailbox/DL - Owner add text field-->
+           <v-text-field
+            v-if="scripts[chosenScript].requiresOwner"
+            v-model="newUser"
+            prepend-inner-icon="fas fa-plus"
+            :disabled="scripts[chosenScript].isLoading"
+            autogrow
+            clearable
+            label="Owner to add"
+            placeholder="firstname.lastname@inter.ikea.com"
+            hint="You can add multiple owners. Use comma or semicolon as a separator or copy/paste from Excel cells."
+            class="mb-4"
+            @paste="onPaste($event, users, 'users')"
+            @keydown.enter.prevent="addUser"
+            @keydown.tab="addUser"
+            @blur="addUser"
+          >
+          </v-text-field>
+
+          <!--Mailbox/DL - Owner remove text field-->
+          <v-text-field
+            v-if="scripts[chosenScript].requiresOwner && keepOwners"
+            v-model="removedOwner"
+            prepend-inner-icon="fas fa-minus"
+            :disabled="scripts[chosenScript].isLoading"
+            autogrow
+            clearable
+            label="Owner to remove"
+            placeholder="firstname.lastname@inter.ikea.com"
+            hint="You can remove multiple owners. Use comma or semicolon as a separator or copy/paste from Excel cells."
+            class="mb-4"
+            @paste="onPaste($event, ownersToRemove, 'owners')"
+            @keydown.enter.prevent="removeOwner"
+            @keydown.tab="removeOwner"
+            @blur="removeOwner"
+          >
+          </v-text-field>
+
           <!--Shared mailboxes list-->
           <v-card
             v-if="
@@ -239,6 +277,7 @@
             class="bg-secondary mb-4 pb-2"
           >
             <v-card-title>
+              <v-icon class="mr-2">fas fa-envelope</v-icon>
               Shared
               <span v-if="mailboxes.length > 1"
                 >mailboxes <v-chip>{{ mailboxes.length }}</v-chip></span
@@ -280,6 +319,7 @@
             class="bg-secondary mb-4 pb-2"
           >
             <v-card-title>
+              <v-icon class="mr-2">fas fa-envelope</v-icon>
               <span v-if="mailboxes.length > 1"
                 >Distribution Lists <v-chip>{{ mailboxes.length }}</v-chip></span
               ><span v-else>Distribution List</span>
@@ -313,12 +353,12 @@
           <!--Users list-->
           <v-card
             v-if="scripts[chosenScript].multipleUsers && users.length > 0"
-            class="bg-secondary pb-2"
+            class="bg-secondary pb-2 mb-4"
           >
             <v-card-title>
-              <span v-if="users.length > 1"
-                >Users <v-chip>{{ users.length }}</v-chip></span
-              ><span v-else>User</span>
+              <v-icon color="success">fas fa-plus</v-icon><v-icon class="mr-2">fas fa-user</v-icon>
+              <span v-if="scripts[chosenScript].requiresOwner">Owner to add</span><span v-else>User to add</span>
+              <v-chip class="ml-2">{{ users.length }}</v-chip>
               <v-tooltip text="Clear all">
                 <template #activator="{ props }">
                   <v-btn
@@ -327,7 +367,7 @@
                     icon="fas fa-circle-xmark"
                     variant="text"
                     @click="
-                      clearAllUsers()
+                      clearAllUsers(users, 'users')
                     "
                   ></v-btn>
                 </template>
@@ -344,7 +384,47 @@
                 }"
               >
                 {{ user }}
-                <v-icon class="ml-1" color="primary" size="small" @click="removeUser(index)"
+                <v-icon class="ml-1" color="primary" size="small" @click="removeUser(index, users, 'users')"
+                  >fas fa-circle-xmark</v-icon
+                >
+              </v-chip>
+            </div>
+          </v-card>
+
+          <!--Owner to remove list-->
+          <v-card
+            v-if="scripts[chosenScript].requiresOwner && ownersToRemove.length > 0 && keepOwners"
+            class="bg-secondary pb-2"
+          >
+            <v-card-title>
+              <v-icon color="error">fas fa-minus</v-icon><v-icon class="mr-2">fas fa-user</v-icon>
+              Owner to remove <v-chip>{{ ownersToRemove.length }}</v-chip>
+              <v-tooltip text="Clear all">
+                <template #activator="{ props }">
+                  <v-btn
+                    v-bind="props"
+                    class="float-right"
+                    icon="fas fa-circle-xmark"
+                    variant="text"
+                    @click="
+                      clearAllUsers(ownersToRemove, 'owners')
+                    "
+                  ></v-btn>
+                </template>
+              </v-tooltip>
+            </v-card-title>
+            <div class="align-start flex-column d-flex">
+              <v-chip
+                v-for="(user, index) in ownersToRemove"
+                :key="index"
+                class="mb-1 ml-2 animate__backInDown animate__animated"
+                :class="{
+                  'bg-error': invalidOwners.includes(user),
+                  'bg-warning': externalDomainOwners.includes(user) && !invalidOwners.includes(user)
+                }"
+              >
+                {{ user }}
+                <v-icon class="ml-1" color="primary" size="small" @click="removeUser(index, ownersToRemove, 'owners')"
                   >fas fa-circle-xmark</v-icon
                 >
               </v-chip>
@@ -354,7 +434,7 @@
           <!--Invalid users and mailboxes alerts-->
           <v-alert
             v-if="
-              (invalidUsers.length > 0 || invalidMailboxes.length > 0) &&
+              (invalidUsers.length > 0 || invalidOwners.length > 0 || invalidMailboxes.length > 0) &&
               scripts[chosenScript].multipleUsers
             "
             class="mt-4"
@@ -364,7 +444,7 @@
           <!--External users alert-->
           <v-alert
             v-if="
-              externalDomainUsers.length > 0 &&
+              (externalDomainUsers.length > 0 || externalDomainOwners.length > 0) &&
               scripts[chosenScript].requiresDL &&
               scripts[chosenScript].multipleUsers
             "
@@ -423,7 +503,7 @@
           density="comfortable"
           :elevation="0"
         >
-          <!--Automapping switch-->
+          <!--Automapping and Keep DL owner switch-->
           <v-container style="max-width: 150px; max-height: 100px" class="pa-0 ma-0">
             <v-switch
               v-if="scripts[chosenScript].requiresAutomappingValue"
@@ -431,6 +511,16 @@
               :disabled="scripts[chosenScript].isLoading"
               color="primary"
               label="Automapping"
+              class="ma-0 pa-0 mb-2"
+              density="compact"
+              hide-details
+            />
+            <v-switch
+              v-if="scripts[chosenScript].requiresDLReplaceCheckbox"
+              v-model="keepOwners"
+              :disabled="scripts[chosenScript].isLoading"
+              color="primary"
+              label="Keep existing owners"
               class="ma-0 pa-0 mb-2"
               density="compact"
               hide-details
@@ -530,6 +620,7 @@ import { updateMonthlyUsageCount } from '../firebase.js'
 import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue'
 import { useTheme } from 'vuetify'
 import { useMyStore } from '@/stores/items.js'
+import validator from 'validator'
 const store = useMyStore()
 const theme = useTheme()
 const enableMaxMinWindowButtons = ref(false)
@@ -555,14 +646,18 @@ const search = ref('')
 const computerName = ref('')
 const userName = ref({ networkID: '', email: '' })
 const users = ref([])
+const ownersToRemove = ref([])
 const validEmails = ref(true)
 const automapping = ref(true)
+const keepOwners = ref(true)
 const newUser = ref('')
+const removedOwner = ref('')
 const newMailbox = ref('')
 const mailbox = ref('')
 const displayName = ref('')
 const mailboxes = ref([])
 const externalDomainUsers = ref([])
+const externalDomainOwners = ref([])
 const textFieldRulesComputer = ref([
   (value) => {
     if (typeof value === 'undefined' || value === null) {
@@ -599,9 +694,8 @@ const textFieldRulesMailbox = ref([
       return 'Value is required'
     }
     const trimmedValue = value.trim()
-    const emailPattern = /^[a-zA-Z0-9._-]+@inter\.ikea\.com$/
 
-    if (emailPattern.test(trimmedValue)) {
+    if (validator.isEmail(trimmedValue) && trimmedValue.endsWith('@inter.ikea.com')) {
       return true
     } else {
       return 'Input must be a valid email address'
@@ -1038,6 +1132,35 @@ const scripts = ref([
     requiresAutomappingValue: true,
    // run: 'create-shared-mailbox',
   },
+  {
+    id: 17,
+    scriptCompleted: false,
+    scriptMessage: [],
+    scriptError: [],
+    isLoading: false,
+    loadingValue: 0,
+    loadingTime: 0,
+    longLoadingMessage: '',
+    interval: -1,
+    name: 'DL - Manage owners',
+    description:
+      'Manage owner(s) to Distribution group(s). Choose to keep the old owner(s) while adding new owners or choose to replace the old owners. You can also specify which user to remove if you do not want to remove all existing owners.',
+    icon: 'Test',
+    color: 'Test',
+    category: 'Exchange',
+    tags: 'Exchange, Outlook, Office, access, remove, add',
+    requiresNetworkID: false,
+    requiresUserEmail: false,
+    requiresComputer: false,
+    requiresMailbox: false,
+    requiresDL: true,
+    requiresOwner: true,
+    requiresDLReplaceCheckbox: true,
+    multipleUsers: true,
+    requiresDisplayName: false,
+    requiresAutomappingValue: false,
+    run: 'add-dl-owners',
+  },
 ])
 
 ///////////////////////////////////////////////////
@@ -1122,6 +1245,7 @@ const isButtonDisabled = computed(() => {
   return (
     (script.multipleUsers &&
       (invalidUsers.value.length > 0 ||
+        invalidOwners.value.length > 0 ||
         invalidMailboxes.value.length > 0 ||
         (users.value.length === 0 && !script.requiresDisplayName) ||
         (mailboxes.value.length === 0 && !script.requiresDisplayName))) ||
@@ -1130,21 +1254,27 @@ const isButtonDisabled = computed(() => {
     !script.run
   );
 });
-
 const invalidUsers = computed(() => {
   if (scripts.value[chosenScript.value].requiresDL) {
     return users.value.filter(
-      (user) => !/^[a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+(?:\.[a-zA-Z0-9._-]+)*$/.test(user)
+      (user) => !validator.isEmail(user)
     )
   } else {
     return users.value.filter(
-      (user) => !/^[a-zA-Z0-9._-]*\.[a-zA-Z0-9._-]+@inter\.ikea\.com$/.test(user)
+      (user) => !validator.isEmail(user) || !/.+\..+@/.test(user) || !user.endsWith('@inter.ikea.com')
     )
   }
 })
-const invalidMailboxes = computed(() =>
-  mailboxes.value.filter((mailbox) => !/^[a-zA-Z0-9._-]+@inter\.ikea\.com$/.test(mailbox))
-)
+const invalidOwners = computed(() => {
+    return ownersToRemove.value.filter(
+      (user) => !validator.isEmail(user)
+    )
+})
+const invalidMailboxes = computed(() => {
+  return mailboxes.value.filter(
+    (mailbox) => !validator.isEmail(mailbox) || !mailbox.endsWith('@inter.ikea.com')
+  )
+})
 const showScriptStatus = computed(() => {
   const script = scripts.value[chosenScript.value]
   return (
@@ -1191,6 +1321,37 @@ watch(mailboxesLength, (newValue) => {
 ///////////////////////////////////////////////////
 //METHODS
 ///////////////////////////////////////////////////
+const colorChangedHandler = (data) => {
+    const { storeThemeName, color, key } = data
+    store.changeColor({
+      theme: storeThemeName,
+      color: color,
+      key: key
+    })
+    setCustomColors('customDarkTheme', 'myCustomDarkTheme')
+    setCustomColors('customLightTheme', 'myCustomLightTheme')
+}
+const themeToggleHandler = (data) => {
+    theme.global.name.value =
+    theme.global.name.value === 'myCustomLightTheme' ? 'myCustomDarkTheme' : 'myCustomLightTheme'
+    const themeName = data
+    theme.global.name.value = themeName
+    store.setTheme(themeName)
+}
+const colorResetHandler = (data) => {
+    const themeName =
+      data.storeThemeName === 'customDarkTheme' ? 'myCustomDarkTheme' : 'myCustomLightTheme'
+    if (themeName === 'myCustomDarkTheme') {
+      theme.themes.value[themeName].colors.primary = '#80d0ff'
+      theme.themes.value[themeName].colors.secondary = '#374955'
+      theme.themes.value[themeName].colors.tertiary = '#f3dbc5'
+    } else {
+      theme.themes.value[themeName].colors.primary = '#1E4A7D'
+      theme.themes.value[themeName].colors.secondary = '#F1EDF1'
+      theme.themes.value[themeName].colors.tertiary = '#7d5260'
+    }
+    store.resetColors(data.storeThemeName)
+}
 const setCustomColors = (customTheme, myCustomTheme) => {
   const themes = theme.themes.value
 
@@ -1229,18 +1390,25 @@ const restoreWindow = () => {
   isMaximized.value = false
 }
 const isValidEmail = (email) => {
-  return /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)
+  return validator.isEmail(email)
 }
-const checkExternalDomain = () => {
-  const validUsers = users.value.filter((user) =>
-    /^[a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+(?:\.[a-zA-Z0-9._-]+)*$/.test(user)
-  )
+const checkExternalDomain = (usersArray, arrayType) => {
+  const validUsers = usersArray.filter((user) => validator.isEmail(user))
 
   // Check if any valid user has a domain other than "@inter.ikea.com"
-  externalDomainUsers.value = validUsers.filter((user) => {
-    const domain = user.split('@')[1]
-    return domain !== 'inter.ikea.com'
-  })
+  if(arrayType === 'users') {
+    externalDomainUsers.value = validUsers.filter((user) => {
+      const domain = user.split('@')[1]
+      return domain !== 'inter.ikea.com'
+    })
+  }
+
+  if(arrayType === 'owners') {
+    externalDomainOwners.value = validUsers.filter((user) => {
+      const domain = user.split('@')[1]
+      return domain !== 'inter.ikea.com'
+    })
+  }
 }
 const onPaste = (event, array, arrayType) => {
   const pastedData = event.clipboardData.getData('text')
@@ -1278,6 +1446,10 @@ const onPaste = (event, array, arrayType) => {
         setTimeout(() => {
           newMailbox.value = ''
         }, 300)
+      } else if (arrayType === 'owners') {
+        setTimeout(() => {
+          removedOwner.value = ''
+        }, 300)
       }
     }
   } else {
@@ -1299,10 +1471,14 @@ const onPaste = (event, array, arrayType) => {
       setTimeout(() => {
         newMailbox.value = ''
       }, 300)
+    } else if (arrayType === 'owners') {
+      setTimeout(() => {
+        removedOwner.value = ''
+      }, 300)
     }
   }
 
-  checkExternalDomain()
+  checkExternalDomain(array, arrayType)
 }
 const addMailbox = () => {
   if (newMailbox.value.trim() !== '') {
@@ -1323,12 +1499,19 @@ const addUser = () => {
   if (newUser.value.trim() !== '') {
     users.value.push(newUser.value.trim())
     newUser.value = ''
-    checkExternalDomain()
+    checkExternalDomain(users.value, 'users')
   }
 }
-const removeUser = (index) => {
-  users.value.splice(index, 1)
-  checkExternalDomain()
+const removeOwner = () => {
+  if (removedOwner.value.trim() !== '') {
+    ownersToRemove.value.push(removedOwner.value.trim())
+    removedOwner.value = ''
+    checkExternalDomain(ownersToRemove.value, 'owners')
+  }
+}
+const removeUser = (index, array, arrayType) => {
+  array.splice(index, 1)
+  checkExternalDomain(array, arrayType)
 }
 const clearInputsAndOutputs = () => {
   mailbox.value = ''
@@ -1337,6 +1520,7 @@ const clearInputsAndOutputs = () => {
   userName.value.networkID = ''
   userName.value.email = ''
   users.value = []
+  ownersToRemove.value = []
   externalDomainUsers.value = []
   validEmails.value = true
   automapping.value = true
@@ -1344,14 +1528,15 @@ const clearInputsAndOutputs = () => {
   scripts.value[chosenScript.value].scriptError = []
   scripts.value[chosenScript.value].scriptCompleted = false
 }
-const clearAllUsers = () => {
-  users.value = []
-  externalDomainUsers.value = []
+const clearAllUsers = (array, arrayType) => {
+  array.splice(0, array.length)
+  checkExternalDomain(array, arrayType)
 }
 const closeScriptDrawer = () => {
   scriptDrawer.value = false
   clearInputsAndOutputs()
-  checkExternalDomain()
+  checkExternalDomain(users.value, 'users')
+  checkExternalDomain(ownersToRemove.value, 'owners')
 }
 const show = (param) => {
   if (param === 'history') {
@@ -1448,7 +1633,9 @@ const runScript = async (id) => {
     mailbox: mailbox.value,
     mailboxDisplayName: displayName.value,
     mailboxes: mailboxes.value,
-    automapping: automapping.value
+    automapping: automapping.value,
+    keepOwners: keepOwners.value,
+    ownersToRemove: ownersToRemove.value,
   }
   const serializedArgs = JSON.stringify(scriptArgs);
   const scriptToRun = scripts.value[id].run;  
@@ -1470,9 +1657,13 @@ const runScript = async (id) => {
       networkID: userName.value.networkID,
       email: userName.value.email,
       users: users.value,
+      ownersToRemove: ownersToRemove.value,
       mailbox: mailbox.value,
       mailboxes: mailboxes.value,
-      automapping: automapping.value
+      automapping: automapping.value,
+      keepOwners: keepOwners.value,
+      requiresAutomappingValue: scripts.value[id].requiresAutomappingValue,
+      requiresDLReplaceCheckbox: scripts.value[id].requiresDLReplaceCheckbox
     });
 
     // Display messages to the user live
@@ -1542,6 +1733,7 @@ const runScript = async (id) => {
 
 }
 
+
 ///////////////////////////////////////////////////
 //Mounted
 ///////////////////////////////////////////////////
@@ -1549,41 +1741,16 @@ onMounted(() => {
   store.setTheme(theme.global.name.value)
   handleResize();
   window.addEventListener('resize', handleResize);
-  window.api.addEventListener('color-changed', (data) => {
-    const { storeThemeName, color, key } = data
-    store.changeColor({
-      theme: storeThemeName,
-      color: color,
-      key: key
-    })
-    setCustomColors('customDarkTheme', 'myCustomDarkTheme')
-    setCustomColors('customLightTheme', 'myCustomLightTheme')
-  })
-  window.api.addEventListener('color-reset', (data) => {
-    const themeName =
-      data.storeThemeName === 'customDarkTheme' ? 'myCustomDarkTheme' : 'myCustomLightTheme'
-    if (themeName === 'myCustomDarkTheme') {
-      theme.themes.value[themeName].colors.primary = '#80d0ff'
-      theme.themes.value[themeName].colors.secondary = '#374955'
-      theme.themes.value[themeName].colors.tertiary = '#f3dbc5'
-    } else {
-      theme.themes.value[themeName].colors.primary = '#1E4A7D'
-      theme.themes.value[themeName].colors.secondary = '#F1EDF1'
-      theme.themes.value[themeName].colors.tertiary = '#7d5260'
-    }
-    store.resetColors(data.storeThemeName)
-  })
-  window.api.addEventListener('toggle-theme', (data) => {
-    theme.global.name.value =
-      theme.global.name.value === 'myCustomLightTheme' ? 'myCustomDarkTheme' : 'myCustomLightTheme'
-    const themeName = data
-    theme.global.name.value = themeName
-    store.setTheme(themeName)
-  })
+  window.api.addEventListener('color-changed', colorChangedHandler)
+  window.api.addEventListener('color-reset', colorResetHandler)
+  window.api.addEventListener('toggle-theme', themeToggleHandler)
 })
 
 onBeforeUnmount(() => {
   window.removeEventListener('resize', handleResize);
+  window.api.removeEventListener('color-changed', colorChangedHandler)
+  window.api.removeEventListener('color-reset', colorResetHandler)
+  window.api.removeEventListener('toggle-theme', themeToggleHandler)
 });
 </script>
 

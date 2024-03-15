@@ -55,9 +55,13 @@
                   ><span class="font-weight-bold">Mailbox:</span>
                   {{ script.mailbox }}</v-card-subtitle
                 >
-                <v-card-subtitle v-if="script.mailboxes != null && script.mailboxes.length > 0 && script.name === 'Mailbox - Give permissions'"
+                <v-card-subtitle v-if="script.mailboxes != null && script.mailboxes.length > 0 && script.requiresAutomappingValue"
                   ><span class="font-weight-bold">Automapping:</span>
                   {{ script.automapping }}</v-card-subtitle
+                >
+                <v-card-subtitle v-if="script.mailboxes != null && script.mailboxes.length > 0 && script.requiresDLReplaceCheckbox"
+                  ><span class="font-weight-bold">Keep existing owners:</span>
+                  {{ script.keepOwners }}</v-card-subtitle
                 >
                 <v-expansion-panels
                   v-if="
@@ -68,7 +72,7 @@
                 >
                   <v-expansion-panel v-if="script.users != null && script.users.length > 0">
                     <v-expansion-panel-title
-                      >Users
+                      ><span v-if="script.ownersToRemove.length > 0">Owners to add</span><span v-else>Users</span>
                       <v-chip class="ml-2">{{
                         script.users.length
                       }}</v-chip></v-expansion-panel-title
@@ -77,6 +81,26 @@
                       <div class="align-start flex-column d-flex">
                         <v-chip
                           v-for="(user, userindex) in script.users"
+                          :key="userindex"
+                          class="mb-1 ml-2"
+                        >
+                          {{ user }}
+                        </v-chip>
+                      </div>
+                    </v-expansion-panel-text>
+                  </v-expansion-panel>
+
+                  <v-expansion-panel v-if="script.ownersToRemove.length > 0">
+                    <v-expansion-panel-title
+                      >Owners to remove
+                      <v-chip class="ml-2">{{
+                        script.ownersToRemove.length
+                      }}</v-chip></v-expansion-panel-title
+                    >
+                    <v-expansion-panel-text>
+                      <div class="align-start flex-column d-flex">
+                        <v-chip
+                          v-for="(user, userindex) in script.ownersToRemove"
                           :key="userindex"
                           class="mb-1 ml-2"
                         >

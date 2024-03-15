@@ -69,7 +69,7 @@ import TrashbinComponent from '@/components/TrashbinComponent.vue'
 import LoginComponent from '@/components/LoginComponent.vue'
 import AdminComponent from '@/components/Admin/AdminComponent.vue'
 import ProfileComponent from '@/components/Admin/ProfileComponent.vue'
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed, watch } from 'vue'
 import { useTheme } from 'vuetify'
 import { useMyStore } from '@/stores/items.js'
 const store = useMyStore()
@@ -145,18 +145,24 @@ const sendIpcMessage = (message) => {
   window.api.sendMessage(message)
 }
 
+const showAddCustomLinkHandler = () => {
+    displayAddcustomlinks()
+}
+
 ///////////////////////////////////////////////////
 //Mounted
 ///////////////////////////////////////////////////
 onMounted(() => {
   store.UPDATE_COMMON_TOOLS()
-  window.api.addEventListener('show-add-custom-link', () => {
-    displayAddcustomlinks()
-  })
+  window.api.addEventListener('show-add-custom-link', showAddCustomLinkHandler)
   store.setTheme(theme.global.name.value)
 
   isLoggedIn.value = store.userLoggedIn
 
+})
+
+onBeforeUnmount(() => {
+  window.api.removeEventListener('show-add-custom-link', showAddCustomLinkHandler)
 })
 
 //Mounted END

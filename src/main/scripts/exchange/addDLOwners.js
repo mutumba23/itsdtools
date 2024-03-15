@@ -1,42 +1,38 @@
 const { spawn } = require("child_process");
-import ps1Path from '../../../../resources/ps1_scripts/giveMailboxAccess.ps1?asset&asarUnpack'
+import ps1Path from '../../../../resources/ps1_scripts/addDLOwners.ps1?asset&asarUnpack'
 
-
-const giveMailboxAccess = ({ mailboxes, users, automapping,  }) => {
+const addDLOwners = ({ mailboxes, users, keepOwners, ownersToRemove }) => {
   return new Promise((resolve, reject) => {
     // Remove whitespaces from each email
     const cleanedMailboxes = mailboxes.map((mailbox) =>
       mailbox.replace(/\s/g, "")
     );
-    const cleanedUsers = users.map((email) => email.replace(/\s/g, ""));
+    const cleanedOwners = users.map((email) => email.replace(/\s/g, ""));
+    const cleanedOwnersToRemove = ownersToRemove.map((email) => email.replace(/\s/g, ""));
+
+    let stdout = "";
 
     const script = spawn("powershell.exe", [
       "-File",
       ps1Path,
       "-mailboxes",
       cleanedMailboxes.join(","),
-      "-users",
-      cleanedUsers.join(","),
-      "-autoMapping",
-      automapping,
+      "-owners",
+      cleanedOwners.join(","),
+      "-ownersToRemove",
+      cleanedOwnersToRemove.join(","),
+      "-keepOwners",
+      keepOwners
     ]);
 
-    let stdout = "";
     script.stdout.on("data", (data) => {
       stdout += data;
-      console.log("PowerShell script output:", data.toString());
     });
-
-    let stderr = "";
-script.stderr.on("data", (data) => {
-  stderr += data;
-  console.error("PowerShell script error:", data.toString());
-});
 
     script.on("close", (code) => {
       // Powershell errors
       if (code !== 0) {
-        console.error("Error executing PowerShell script:", stderr);
+        console.error("Error executing PowerShell script:", stdout);
         let errorMessages = [];
         if (stdout.includes("User canceled authentication")) {
           errorMessages.push("User canceled the authentication process.");
@@ -50,70 +46,50 @@ script.stderr.on("data", (data) => {
         );
         reject({ errorMessages });
       } else {
-        // Powershell success
         console.log("PowerShell script execution succeeded.");
         const stdoutMessages = stdout.split("\n");
         let successMessages = [];
         let errorMessages = [];
 
-        let accessReapplied = false; // Flag to track if access was reapplied
-
         stdoutMessages.forEach((message) => {
-          if (message.trim() !== "") {
-            if (message.startsWith("INFO")) {
-              const parts = message.split("|");
-              if (parts.length >= 2) {
-                const action = parts[1];
-                if (action === "AlreadyHasFullAccess") {
-                  // Mark that access was reapplied
-                  accessReapplied = true;
-                } else {
-                  errorMessages.push(message);
-                }
-              } else {
-                errorMessages.push(message);
-              }
-            } else if (message.startsWith("SUCCESS")) {
+            if (message.startsWith("SUCCESS")) {
               const parts = message.split("|");
               if (parts.length >= 4) {
                 const action = parts[1];
                 const mailbox = parts[3].split(":")[1];
                 const user = parts[2].split(":")[1];
-
-                if (action === "FullAccess" && accessReapplied) {
-                  // If FullAccess was granted and access was reapplied, merge the messages
-                  successMessages.push(
-                    `User ${user} already had FullAccess to ${mailbox}. Access reapplied with new automapping value.`
-                  );
-                  accessReapplied = false; // Reset the flag
-                } else {
-                  // Otherwise, add the success message normally
-                  successMessages.push(
-                    `${action} permission for mailbox ${mailbox} granted to user ${user}`
-                  );
+  
+                if (action === "OwnerRemoved" && !cleanedOwners.includes(user)) {
+                  successMessages.push(`User ${user} removed as owner from DL ${mailbox}.`);
                 }
+                if (action === "OwnerAdded") {
+                    successMessages.push(`User ${user} added as owner of DL ${mailbox}.`);
+                  }
               } else {
                 errorMessages.push(message);
               }
             } else if (message.startsWith("ERROR")) {
               const parts = message.split("|");
-              if (parts.length >= 3) {
+              if (parts.length >= 4) {
                 const action = parts[1];
-                const mailbox = parts[2].split(":")[1];
-
-                if (action === "NotASharedMailbox") {
-                  errorMessages.push(`Skipping mailbox ${mailbox} because it's not a shared mailbox. No action taken for this mailbox.`);
-                } 
+                const mailbox = parts[3].split(":")[1];
+                const user = parts[2].split(":")[1];
+  
+                if (action === "FailedToAdd") {
+                  errorMessages.push(`Failed to add user ${user} as owner of DL ${mailbox}.`);
+                }
+                if (action === "FailedToRemove") {
+                    errorMessages.push(`Failed to remove user ${user} as owner of DL ${mailbox}.`);
+                  }
               } else {
                 errorMessages.push(message);
               }
             } else if (message.startsWith("The following users do not exist")) {
               errorMessages.push(message);
-            } else if (message.startsWith("The following mailboxes do not exist")) {
+            } else if (message.startsWith("The following distribution groups do not exist")) {
               errorMessages.push(message);
-            } 
-          }
-        });
+            }
+          });
 
         // Check if the PowerShell script execution succeeded or failed
         if (successMessages.length === 0 && errorMessages.length === 0) {
@@ -122,16 +98,19 @@ script.stderr.on("data", (data) => {
           );
         }
 
+        console.log("PowerShell script stdout:", stdout);
+
         if (successMessages && successMessages.length > 0) {
           console.log("PowerShell script success messages:", successMessages);
         }
         if (errorMessages && errorMessages.length > 0) {
           console.error("PowerShell script error messages:", errorMessages);
         }
+
         resolve({ successMessages, errorMessages });
       }
     });
   });
 };
 
-export { giveMailboxAccess };
+export { addDLOwners };
