@@ -139,7 +139,7 @@
           class="mx-4 flex-grow-1 justify-start animate__animated animate__backInUp"
           :style="{ textTransform: 'none' }"
           size="large"
-          :prepend-icon="button.browser"
+          :prepend-icon="button.incognito ? 'fas fa-mask' : button.browser"
           variant="text"
           @click="
             openExternalLink(button.link, button.browser, {

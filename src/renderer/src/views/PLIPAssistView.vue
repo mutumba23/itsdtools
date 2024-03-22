@@ -175,7 +175,6 @@
           <v-text-field
             v-if="scripts[chosenScript].multipleUsers && !scripts[chosenScript].requiresDL && !scripts[chosenScript].requiresDisplayName"
             v-model="newMailbox"
-            prepend-inner-icon="fas fa-plus"
             :disabled="scripts[chosenScript].isLoading"
             autogrow
             clearable
@@ -183,11 +182,15 @@
             placeholder="example@inter.ikea.com"
             hint="You can add multiple mailboxes. Use comma or semicolon as a separator or copy/paste from Excel cells."
             class="mb-4"
+            color="primary"
             @paste="onPaste($event, mailboxes, 'mailboxes')"
             @keydown.enter.prevent="addMailbox"
             @keydown.tab="addMailbox"
             @blur="addMailbox"
           >
+          <template #prepend-inner>
+            <v-icon color="primary">fas fa-envelope</v-icon>
+          </template>
           </v-text-field>
 
           <!--DL text field-->
@@ -195,7 +198,6 @@
           <v-text-field
             v-if="scripts[chosenScript].multipleUsers && scripts[chosenScript].requiresDL"
             v-model="newMailbox"
-            prepend-inner-icon="fas fa-plus"
             :disabled="scripts[chosenScript].isLoading"
             autogrow
             clearable
@@ -203,18 +205,21 @@
             placeholder="example@inter.ikea.com"
             hint="You can add multiple DLs. Use comma or semicolon as a separator or copy/paste from Excel cells."
             class="mb-4"
+            color="primary"
             @paste="onPaste($event, mailboxes, 'mailboxes')"
             @keydown.enter.prevent="addMailbox"
             @keydown.tab="addMailbox"
             @blur="addMailbox"
           >
+          <template #prepend-inner>
+            <v-icon color="primary">fas fa-envelope</v-icon>
+          </template>
           </v-text-field>
 
           <!--Mailbox/DL - Users add text field-->
           <v-text-field
             v-if="scripts[chosenScript].multipleUsers && !scripts[chosenScript].requiresOwner"
             v-model="newUser"
-            prepend-inner-icon="fas fa-plus"
             :disabled="scripts[chosenScript].isLoading"
             autogrow
             clearable
@@ -222,18 +227,21 @@
             placeholder="firstname.lastname@inter.ikea.com"
             hint="You can add multiple users. Use comma or semicolon as a separator or copy/paste from Excel cells."
             class="mb-4"
+            :color="scripts[chosenScript].removalAction ? 'error' : 'success'"
             @paste="onPaste($event, users, 'users')"
             @keydown.enter.prevent="addUser"
             @keydown.tab="addUser"
             @blur="addUser"
           >
+          <template #prepend-inner>
+            <v-icon :color="scripts[chosenScript].removalAction ? 'error' : 'success'">fas fa-user</v-icon>
+          </template>
           </v-text-field>
 
            <!--Mailbox/DL - Owner add text field-->
            <v-text-field
             v-if="scripts[chosenScript].requiresOwner"
             v-model="newUser"
-            prepend-inner-icon="fas fa-plus"
             :disabled="scripts[chosenScript].isLoading"
             autogrow
             clearable
@@ -241,18 +249,21 @@
             placeholder="firstname.lastname@inter.ikea.com"
             hint="You can add multiple owners. Use comma or semicolon as a separator or copy/paste from Excel cells."
             class="mb-4"
+            color="success"
             @paste="onPaste($event, users, 'users')"
             @keydown.enter.prevent="addUser"
             @keydown.tab="addUser"
             @blur="addUser"
           >
+          <template #prepend-inner>
+            <v-icon color="success">fas fa-user</v-icon>
+          </template>
           </v-text-field>
 
           <!--Mailbox/DL - Owner remove text field-->
           <v-text-field
             v-if="scripts[chosenScript].requiresOwner && keepOwners"
             v-model="removedOwner"
-            prepend-inner-icon="fas fa-minus"
             :disabled="scripts[chosenScript].isLoading"
             autogrow
             clearable
@@ -260,12 +271,44 @@
             placeholder="firstname.lastname@inter.ikea.com"
             hint="You can remove multiple owners. Use comma or semicolon as a separator or copy/paste from Excel cells."
             class="mb-4"
+            color="error"
             @paste="onPaste($event, ownersToRemove, 'owners')"
             @keydown.enter.prevent="removeOwner"
             @keydown.tab="removeOwner"
             @blur="removeOwner"
           >
+          <template #prepend-inner>
+            <v-icon color="error">fas fa-user</v-icon>
+          </template>
           </v-text-field>
+
+          <!--Removed pasted text-->
+          <v-expansion-panels v-if="removedPastedText.length > 0" class="my-2">
+            <v-expansion-panel>
+              <v-expansion-panel-title>
+                <v-icon class="mr-2">fas fa-info</v-icon>
+                Pasted text removed
+              </v-expansion-panel-title>
+              <v-expansion-panel-text>
+                <v-card>
+                  <v-card-title>
+                    <v-tooltip text="Clear removed pasted text">
+                      <template #activator="{ props }">
+                        <v-btn
+                          v-bind="props"
+                          class="float-right"
+                          icon="fas fa-circle-xmark"
+                          variant="text"
+                          @click="removedPastedText = []"
+                        ></v-btn>
+                      </template>
+                    </v-tooltip>
+                  </v-card-title>
+                    <v-chip v-for="(text, index) in removedPastedText" :key="index" color="error" class="ma-1">{{text}}</v-chip>
+                </v-card>
+              </v-expansion-panel-text>
+            </v-expansion-panel>
+          </v-expansion-panels>
 
           <!--Shared mailboxes list-->
           <v-card
@@ -277,11 +320,12 @@
             class="bg-secondary mb-4 pb-2"
           >
             <v-card-title>
-              <v-icon class="mr-2">fas fa-envelope</v-icon>
-              Shared
+              <v-badge color="primary" :content="mailboxes.length" class="mr-2">
+                <v-icon class="mr-2">fas fa-envelope</v-icon>
+              </v-badge>
               <span v-if="mailboxes.length > 1"
-                >mailboxes <v-chip>{{ mailboxes.length }}</v-chip></span
-              ><span v-else>mailbox </span>
+                >Shared mailboxes</span
+              ><span v-else>Shared mailbox </span>
               <v-tooltip text="Clear all">
                 <template #activator="{ props }">
                   <v-btn
@@ -319,9 +363,11 @@
             class="bg-secondary mb-4 pb-2"
           >
             <v-card-title>
-              <v-icon class="mr-2">fas fa-envelope</v-icon>
+              <v-badge color="primary" :content="mailboxes.length" class="mr-2">
+                <v-icon class="mr-2">fas fa-envelope</v-icon>
+              </v-badge>
               <span v-if="mailboxes.length > 1"
-                >Distribution Lists <v-chip>{{ mailboxes.length }}</v-chip></span
+                >Distribution Lists</span
               ><span v-else>Distribution List</span>
               <v-tooltip text="Clear all">
                 <template #activator="{ props }">
@@ -356,9 +402,12 @@
             class="bg-secondary pb-2 mb-4"
           >
             <v-card-title>
-              <v-icon color="success">fas fa-plus</v-icon><v-icon class="mr-2">fas fa-user</v-icon>
-              <span v-if="scripts[chosenScript].requiresOwner">Owner to add</span><span v-else>User to add</span>
-              <v-chip class="ml-2">{{ users.length }}</v-chip>
+              <v-badge :color="scripts[chosenScript].removalAction ? 'error' : 'success'" :content="users.length" class="mr-2">
+                <v-icon class="mr-2">fas fa-user</v-icon>
+              </v-badge>
+              <span v-if="scripts[chosenScript].requiresOwner">Owner to add</span>
+              <span v-if="!scripts[chosenScript].requiresOwner && !scripts[chosenScript].removalAction"><span v-if="users.length === 1">User</span><span v-else>Users</span></span>
+              <span v-if="!scripts[chosenScript].requiresOwner && scripts[chosenScript].removalAction"><span v-if="users.length === 1">User</span><span v-else>Users</span></span>
               <v-tooltip text="Clear all">
                 <template #activator="{ props }">
                   <v-btn
@@ -397,8 +446,10 @@
             class="bg-secondary pb-2"
           >
             <v-card-title>
-              <v-icon color="error">fas fa-minus</v-icon><v-icon class="mr-2">fas fa-user</v-icon>
-              Owner to remove <v-chip>{{ ownersToRemove.length }}</v-chip>
+              <v-badge color="error" :content="ownersToRemove.length" class="mr-2">
+                <v-icon class="mr-2">fas fa-user</v-icon>
+              </v-badge>
+              <span>Owner to remove</span>
               <v-tooltip text="Clear all">
                 <template #activator="{ props }">
                   <v-btn
@@ -550,9 +601,10 @@
         placeholder="Search Scripts"
         class="flex-grow-0"
       ></v-text-field>
-      <v-card-title v-if="showCardTitle"
-        >{{ cardTitle }} <v-chip>{{ filteredScripts.length }} scripts</v-chip></v-card-title
-      >
+      <v-card-title v-if="showCardTitle">
+        {{ cardTitle }} 
+        <v-chip>{{ filteredScripts.length }} scripts</v-chip>
+      </v-card-title>
       <div class="show-scrollbar container" style="height: 100%">
         <v-row>
           <v-col
@@ -656,6 +708,7 @@ const newMailbox = ref('')
 const mailbox = ref('')
 const displayName = ref('')
 const mailboxes = ref([])
+const removedPastedText = ref([])
 const externalDomainUsers = ref([])
 const externalDomainOwners = ref([])
 const textFieldRulesComputer = ref([
@@ -742,6 +795,7 @@ const scripts = ref([
     requiresUserEmail: false,
     requiresComputer: true,
     requiresMailbox: false,
+    requiresOwner: false,
     multipleUsers: false,
     requiresAutomappingValue: false,
     run: 'check-status'
@@ -766,6 +820,7 @@ const scripts = ref([
     requiresUserEmail: false,
     requiresComputer: true,
     requiresMailbox: false,
+    requiresOwner: false,
     multipleUsers: false,
     requiresAutomappingValue: false
   },
@@ -789,6 +844,7 @@ const scripts = ref([
     requiresUserEmail: false,
     requiresComputer: true,
     requiresMailbox: false,
+    requiresOwner: false,
     multipleUsers: false,
     requiresAutomappingValue: false
   },
@@ -813,6 +869,7 @@ const scripts = ref([
     requiresUserEmail: false,
     requiresComputer: true,
     requiresMailbox: false,
+    requiresOwner: false,
     multipleUsers: false,
     requiresAutomappingValue: false
   },
@@ -836,6 +893,7 @@ const scripts = ref([
     requiresUserEmail: false,
     requiresComputer: true,
     requiresMailbox: false,
+    requiresOwner: false,
     multipleUsers: false,
     requiresAutomappingValue: false
   },
@@ -859,6 +917,7 @@ const scripts = ref([
     requiresUserEmail: false,
     requiresComputer: true,
     requiresMailbox: false,
+    requiresOwner: false,
     multipleUsers: false,
     requiresAutomappingValue: false
   },
@@ -882,6 +941,7 @@ const scripts = ref([
     requiresUserEmail: false,
     requiresComputer: true,
     requiresMailbox: false,
+    requiresOwner: false,
     multipleUsers: false,
     requiresAutomappingValue: false
   },
@@ -905,6 +965,7 @@ const scripts = ref([
     requiresUserEmail: false,
     requiresComputer: false,
     requiresMailbox: false,
+    requiresOwner: false,
     multipleUsers: false,
     requiresAutomappingValue: false
   },
@@ -928,6 +989,7 @@ const scripts = ref([
     requiresUserEmail: false,
     requiresComputer: true,
     requiresMailbox: false,
+    requiresOwner: false,
     multipleUsers: false,
     requiresAutomappingValue: false,
     run: 'gp-update'
@@ -953,7 +1015,9 @@ const scripts = ref([
     requiresUserEmail: false,
     requiresComputer: false,
     requiresMailbox: false,
+    requiresOwner: false,
     multipleUsers: true,
+    removalAction: true,
     requiresAutomappingValue: false,
     run: 'remove-user-mailbox-access'
   },
@@ -977,6 +1041,7 @@ const scripts = ref([
     requiresUserEmail: false,
     requiresComputer: false,
     requiresMailbox: true,
+    requiresOwner: false,
     multipleUsers: false,
     requiresAutomappingValue: false,
     run: 'get-mailbox-permissions'
@@ -1002,6 +1067,7 @@ const scripts = ref([
     requiresUserEmail: true,
     requiresComputer: false,
     requiresMailbox: true,
+    requiresOwner: false,
     multipleUsers: false,
     requiresAutomappingValue: true
     //  run: changeAutomapping,
@@ -1027,6 +1093,7 @@ const scripts = ref([
     requiresUserEmail: false,
     requiresComputer: false,
     requiresMailbox: false,
+    requiresOwner: false,
     multipleUsers: true,
     requiresAutomappingValue: true,
     run: 'give-mailbox-access',
@@ -1052,6 +1119,7 @@ const scripts = ref([
     requiresUserEmail: false,
     requiresComputer: false,
     requiresMailbox: false,
+    requiresOwner: false,
     multipleUsers: false,
     requiresAutomappingValue: false,
     run: 'install-exchange-module'
@@ -1077,6 +1145,7 @@ const scripts = ref([
     requiresComputer: false,
     requiresMailbox: false,
     requiresDL: true,
+    requiresOwner: false,
     multipleUsers: true,
     requiresAutomappingValue: false,
     run: 'give-dl-access'
@@ -1102,6 +1171,8 @@ const scripts = ref([
     requiresComputer: false,
     requiresMailbox: false,
     requiresDL: true,
+    requiresOwner: false,
+    removalAction: true,
     multipleUsers: true,
     requiresAutomappingValue: false,
     run: 'remove-dl-access'
@@ -1126,6 +1197,7 @@ const scripts = ref([
     requiresNetworkID: false,
     requiresUserEmail: false,
     requiresComputer: false,
+    requiresOwner: false,
     requiresMailbox: true,
     multipleUsers: true,
     requiresDisplayName: true,
@@ -1255,7 +1327,7 @@ const isButtonDisabled = computed(() => {
   );
 });
 const invalidUsers = computed(() => {
-  if (scripts.value[chosenScript.value].requiresDL) {
+  if (scripts.value[chosenScript.value].requiresDL && !scripts.value[chosenScript.value].requiresOwner) {
     return users.value.filter(
       (user) => !validator.isEmail(user)
     )
@@ -1266,9 +1338,10 @@ const invalidUsers = computed(() => {
   }
 })
 const invalidOwners = computed(() => {
-    return ownersToRemove.value.filter(
-      (user) => !validator.isEmail(user)
-    )
+    const regex = /^[^@]*\.[^@]*@inter\.ikea\.com$/;
+  return ownersToRemove.value.filter(
+    (user) => !regex.test(user)
+  )
 })
 const invalidMailboxes = computed(() => {
   return mailboxes.value.filter(
@@ -1393,6 +1466,9 @@ const isValidEmail = (email) => {
   return validator.isEmail(email)
 }
 const checkExternalDomain = (usersArray, arrayType) => {
+  if(scripts.value[chosenScript.value].requiresOwner) {
+    return
+  }
   const validUsers = usersArray.filter((user) => validator.isEmail(user))
 
   // Check if any valid user has a domain other than "@inter.ikea.com"
@@ -1413,17 +1489,25 @@ const checkExternalDomain = (usersArray, arrayType) => {
 const onPaste = (event, array, arrayType) => {
   const pastedData = event.clipboardData.getData('text')
   let pastedItems = []
+  removedPastedText.value = []
 
   // Split pasted data using semicolons or colons as delimiters
-  pastedItems = pastedData.split(/[\s;,:/\\]+/)
+  pastedItems = pastedData.split(/[\s;,:|/\\<>]+/)
 
   // If there are no items after splitting, it means the data might be from Excel, so it is split using tabs or commas as delimiters
   if (pastedItems.length === 1) {
     pastedItems = pastedData.split(/[\t,]+/)
   }
 
-  // Filter out empty or whitespace-only items
-  pastedItems = pastedItems.filter((item) => item.trim() !== '')
+  // Filter out items that are not valid email addresses and add them to removedItems
+  pastedItems = pastedItems.filter((item) => {
+    if (validator.isEmail(item.trim())) {
+      return true
+    } else {
+      removedPastedText.value.push(item)
+      return false
+    }
+  })
 
   // If there's only one item being pasted
   if (pastedItems.length === 1) {
@@ -1506,7 +1590,7 @@ const removeOwner = () => {
   if (removedOwner.value.trim() !== '') {
     ownersToRemove.value.push(removedOwner.value.trim())
     removedOwner.value = ''
-    checkExternalDomain(ownersToRemove.value, 'owners')
+   // checkExternalDomain(ownersToRemove.value, 'owners')
   }
 }
 const removeUser = (index, array, arrayType) => {
@@ -1522,6 +1606,7 @@ const clearInputsAndOutputs = () => {
   users.value = []
   ownersToRemove.value = []
   externalDomainUsers.value = []
+  removedPastedText.value = []
   validEmails.value = true
   automapping.value = true
   scripts.value[chosenScript.value].scriptMessage = []
@@ -1536,7 +1621,7 @@ const closeScriptDrawer = () => {
   scriptDrawer.value = false
   clearInputsAndOutputs()
   checkExternalDomain(users.value, 'users')
-  checkExternalDomain(ownersToRemove.value, 'owners')
+  //checkExternalDomain(ownersToRemove.value, 'owners')
 }
 const show = (param) => {
   if (param === 'history') {
