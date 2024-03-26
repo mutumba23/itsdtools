@@ -4,7 +4,7 @@
     <template #append>
       <v-btn
         color="on-tertiary"
-        icon="fas fa-xmark"
+        icon="fas fa-minimize"
         @click="store.showAbout = false"
       ></v-btn>
     </template>

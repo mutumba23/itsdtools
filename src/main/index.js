@@ -7,6 +7,7 @@ import icon from '../../resources/icon.ico?asset'
 import localShortcut from 'electron-localshortcut'
 import fs from 'fs/promises'
 import { spawn } from 'child_process'
+//import { runIDEM } from './scripts/idem/runIDEM.js';
 import { checkStatus } from './scripts/idem/checkStatus.js';
 import { runGpUpdate } from './scripts/icc4/gpUpdate.js';
 import { getMailboxPermissions } from './scripts/exchange/getMailboxPermissions.js';

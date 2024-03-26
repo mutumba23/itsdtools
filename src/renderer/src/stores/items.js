@@ -195,7 +195,6 @@ export const useMyStore = defineStore('ITSDToolsStore', {
       'customDarkTheme',
       'customLightTheme',
       'phoneMode',
-      'userLoggedIn',
       'isPinned',
       'customLinks',
       'showCard',
@@ -206,8 +205,7 @@ export const useMyStore = defineStore('ITSDToolsStore', {
       'configDone',
       'lastRunScripts',
       'emailSent',
-      'user'
-    ]
+    ],
   },
   getters: {
     isFavorite: (state) => (scriptId) => {

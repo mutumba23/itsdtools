@@ -157,11 +157,7 @@ const signout = () => {
 const sendVerificationEmail = async () => {
   try {
     const user = auth.currentUser;
-    if (user) {
-      await sendEmailVerification(user);
-    } else {
-      console.error('No user signed in.');
-    }
+    await sendEmailVerification(user);
   } catch (error) {
     console.error('Error sending verification email:', error);
   }
@@ -170,13 +166,8 @@ const sendVerificationEmail = async () => {
 const updateDisplayName = async (displayName) => {
   try {
     const user = auth.currentUser
-
-    if (user) {
-      await updateProfile(user, { displayName })
-      console.log('Display name updated successfully')
-    } else {
-      console.error('No user signed in')
-    }
+    await updateProfile(user, { displayName })
+    console.log('Display name updated successfully')
   } catch (error) {
     console.error('Error updating display name:', error)
   }

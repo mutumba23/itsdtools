@@ -822,7 +822,8 @@ const scripts = ref([
     requiresMailbox: false,
     requiresOwner: false,
     multipleUsers: false,
-    requiresAutomappingValue: false
+    requiresAutomappingValue: false,
+   // run: 'run-idem'
   },
   {
     id: 2,
@@ -1345,7 +1346,7 @@ const invalidOwners = computed(() => {
 })
 const invalidMailboxes = computed(() => {
   return mailboxes.value.filter(
-    (mailbox) => !validator.isEmail(mailbox) || !mailbox.endsWith('@inter.ikea.com')
+    (mailbox) => !validator.isEmail(mailbox) || (!mailbox.endsWith('@inter.ikea.com') && !mailbox.endsWith('@OneIIG.onmicrosoft.com'))
   )
 })
 const showScriptStatus = computed(() => {
