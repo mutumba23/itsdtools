@@ -1320,7 +1320,9 @@ const isButtonDisabled = computed(() => {
       (invalidUsers.value.length > 0 ||
         invalidOwners.value.length > 0 ||
         invalidMailboxes.value.length > 0 ||
-        (users.value.length === 0 && !script.requiresDisplayName) ||
+        (script.requiresOwner
+          ? users.value.length === 0 && ownersToRemove.value.length === 0
+          : users.value.length === 0 && !script.requiresDisplayName) ||
         (mailboxes.value.length === 0 && !script.requiresDisplayName))) ||
     !areRulesMet.value ||
     script.isLoading ||
