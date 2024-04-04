@@ -1,6 +1,6 @@
 <template>
   <div class="home">
-    <v-app-bar density="compact" color="tertiary" rounded class="drag">
+    <v-app-bar density="compact" color="tertiary" rounded class="drag app-bar">
       <template #prepend>
         <label class="switch mr-2">
           <input
@@ -168,3 +168,19 @@ onBeforeUnmount(() => {
 //Mounted END
 ///////////////////////////////////////////////////
 </script>
+
+<style scoped>
+.app-bar::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background-image: url('@/assets/bg.jpg');
+  background-size: cover;
+  background-position: center;
+  opacity: 0.3; /* Adjust this value to change the opacity */
+  z-index: -1;
+}
+</style>

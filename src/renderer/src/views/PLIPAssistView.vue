@@ -1,6 +1,6 @@
 <template>
   <!--App bar-->
-  <v-app-bar density="compact" color="tertiary" class="ma-0 drag" rounded>
+  <v-app-bar density="compact" color="tertiary" class="ma-0 drag app-bar" rounded>
     <template #prepend>
       <v-app-bar-nav-icon color="on-tertiary" @click.stop="drawer = !drawer"></v-app-bar-nav-icon>
     </template>
@@ -95,7 +95,7 @@
   <!--Left, middle and right content-->
   <div class="d-flex flex-column h-100 py-0" style="height: 100vh">
     <!--Left menu-->
-    <v-navigation-drawer v-model="drawer">
+    <v-navigation-drawer v-model="drawer" class="bg-background">
       <v-list density="compact" nav>
         <v-list-item
           v-for="category in categories"
@@ -113,6 +113,7 @@
     <v-navigation-drawer
       id="scriptDrawer"
       v-model="scriptDrawer"
+      class="bg-background"
       location="right"
       width="500"
       @update:model-value="closeScriptDrawer"
@@ -287,12 +288,12 @@
             <v-expansion-panel>
               <v-expansion-panel-title>
                 <v-icon class="mr-2">fas fa-info</v-icon>
-                Pasted text removed
+                Detected and Removed Invalid Content
               </v-expansion-panel-title>
               <v-expansion-panel-text>
                 <v-card>
-                  <v-card-title>
-                    <v-tooltip text="Clear removed pasted text">
+                  <span>
+                    <v-tooltip text="Clear info">
                       <template #activator="{ props }">
                         <v-btn
                           v-bind="props"
@@ -303,7 +304,8 @@
                         ></v-btn>
                       </template>
                     </v-tooltip>
-                  </v-card-title>
+                  </span>
+                  <v-card-text>Invalid content detected in your paste action has been automatically removed from script inputs.</v-card-text>
                     <v-chip v-for="(text, index) in removedPastedText" :key="index" color="error" class="ma-1">{{text}}</v-chip>
                 </v-card>
               </v-expansion-panel-text>
@@ -326,7 +328,7 @@
               <span v-if="mailboxes.length > 1"
                 >Shared mailboxes</span
               ><span v-else>Shared mailbox </span>
-              <v-tooltip text="Clear all">
+              <v-tooltip text="Clear all mailboxes">
                 <template #activator="{ props }">
                   <v-btn
                     v-bind="props"
@@ -369,7 +371,7 @@
               <span v-if="mailboxes.length > 1"
                 >Distribution Lists</span
               ><span v-else>Distribution List</span>
-              <v-tooltip text="Clear all">
+              <v-tooltip text="Clear all DLs">
                 <template #activator="{ props }">
                   <v-btn
                     v-bind="props"
@@ -408,7 +410,7 @@
               <span v-if="scripts[chosenScript].requiresOwner">Owner to add</span>
               <span v-if="!scripts[chosenScript].requiresOwner && !scripts[chosenScript].removalAction"><span v-if="users.length === 1">User</span><span v-else>Users</span></span>
               <span v-if="!scripts[chosenScript].requiresOwner && scripts[chosenScript].removalAction"><span v-if="users.length === 1">User</span><span v-else>Users</span></span>
-              <v-tooltip text="Clear all">
+              <v-tooltip text="Clear all users">
                 <template #activator="{ props }">
                   <v-btn
                     v-bind="props"
@@ -450,7 +452,7 @@
                 <v-icon class="mr-2">fas fa-user</v-icon>
               </v-badge>
               <span>Owner to remove</span>
-              <v-tooltip text="Clear all">
+              <v-tooltip text="Clear all users">
                 <template #activator="{ props }">
                   <v-btn
                     v-bind="props"
@@ -488,17 +490,14 @@
               (invalidUsers.length > 0 || invalidOwners.length > 0 || invalidMailboxes.length > 0) &&
               scripts[chosenScript].multipleUsers
             "
-            class="mt-4"
+            class="mt-4 animate__animated animate__flash"
             type="error"
             >At least one of the email addresses has an incorrect format.</v-alert
           >
           <!--External users alert-->
           <v-alert
-            v-if="
-              (externalDomainUsers.length > 0 || externalDomainOwners.length > 0) &&
-              scripts[chosenScript].requiresDL &&
-              scripts[chosenScript].multipleUsers
-            "
+            v-if="showExternalDomainUsersAlert"
+            :class="{ 'animate__animated animate__flash': animate }"
             class="mt-4"
             type="warning"
             >An external user was found. Please ensure an external contact exists before running the
@@ -580,6 +579,7 @@
           <template #actions>
             <v-btn
               class="mb-2"
+              :class="{ 'animate__animated animate__heartBeat': !isButtonDisabled }"
               :disabled="isButtonDisabled"
               @click="runScript(chosenScript)"
               >Run Script</v-btn
@@ -700,7 +700,7 @@ const userName = ref({ networkID: '', email: '' })
 const users = ref([])
 const ownersToRemove = ref([])
 const validEmails = ref(true)
-const automapping = ref(true)
+const automapping = ref(false)
 const keepOwners = ref(true)
 const newUser = ref('')
 const removedOwner = ref('')
@@ -708,6 +708,7 @@ const newMailbox = ref('')
 const mailbox = ref('')
 const displayName = ref('')
 const mailboxes = ref([])
+let animate = ref(false);
 const removedPastedText = ref([])
 const externalDomainUsers = ref([])
 const externalDomainOwners = ref([])
@@ -1369,7 +1370,15 @@ const showScriptStatusMultipleLogs = computed(() => {
       (script.scriptMessage && script.scriptMessage.length > 2))
   )
 })
-const mailboxesLength = computed(() => mailboxes.value.length)
+const showExternalDomainUsersAlert = computed(() => {
+  return (
+    (externalDomainUsers.value.length > 0 || externalDomainOwners.value.length > 0) &&
+    scripts.value[chosenScript.value].requiresDL &&
+    scripts.value[chosenScript.value].multipleUsers
+  );
+});
+//Uncomment below to set automapping to false if more than 3 mailboxes.
+//const mailboxesLength = computed(() => mailboxes.value.length)
 ///////////////////////////////////////////////////
 //WATCH
 ///////////////////////////////////////////////////
@@ -1391,9 +1400,20 @@ watch(dialogValue, (val) => {
   bufferValue.value = 10
   startBuffer()
 })
-watch(mailboxesLength, (newValue) => {
+//Uncomment below to set automapping to false if more than 3 mailboxes.
+/*watch(mailboxesLength, (newValue) => {
   automapping.value = newValue > 3 ? false : true
-})
+})*/
+watch(showExternalDomainUsersAlert, (newValue) => {
+  if (newValue) {
+    animate.value = true;
+
+    setTimeout(() => {
+      animate.value = false;
+    }, 3000); // Adjust the timeout to match the duration of your animation
+  }
+});
+
 ///////////////////////////////////////////////////
 //METHODS
 ///////////////////////////////////////////////////
@@ -1611,7 +1631,7 @@ const clearInputsAndOutputs = () => {
   externalDomainUsers.value = []
   removedPastedText.value = []
   validEmails.value = true
-  automapping.value = true
+  automapping.value = false
   scripts.value[chosenScript.value].scriptMessage = []
   scripts.value[chosenScript.value].scriptError = []
   scripts.value[chosenScript.value].scriptCompleted = false
@@ -1853,5 +1873,19 @@ onBeforeUnmount(() => {
   bottom: 0;
   width: 100%;
   padding: 0px; /* Adjust padding as needed */
+}
+
+.app-bar::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background-image: url('@/assets/bg.jpg');
+  background-size: cover;
+  background-position: center;
+  opacity: 0.3; /* Adjust this value to change the opacity */
+  z-index: -1;
 }
 </style>

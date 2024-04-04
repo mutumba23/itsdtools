@@ -180,6 +180,24 @@ export const useMyStore = defineStore('ITSDToolsStore', {
       secondary: null,
       tertiary: null
     },
+    myDarkThemeTemplate: {
+      name: 'Dark - My Custom Theme',
+      custom: true,
+      colors: {
+        primary: '#80d0ff',
+        secondary: '#374955',
+        tertiary: '#f3dbc5'
+      }
+    },
+    myLightThemeTemplate: {
+      name: 'Light - My Custom Theme',
+      custom: true,
+      colors: {
+        primary: '#1E4A7D',
+        secondary: '#F1EDF1',
+        tertiary: '#7d5260'
+      }
+    },
     favoriteScripts: [],
     lastRunScripts: [],
     snackbarMessage: '',
@@ -194,6 +212,8 @@ export const useMyStore = defineStore('ITSDToolsStore', {
       'theme',
       'customDarkTheme',
       'customLightTheme',
+      'myLightThemeTemplate',
+      'myDarkThemeTemplate',
       'phoneMode',
       'isPinned',
       'customLinks',

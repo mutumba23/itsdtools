@@ -1,5 +1,5 @@
 <template>
-  <v-app-bar density="compact" color="tertiary" rounded class="drag">
+  <v-app-bar density="compact" color="tertiary" rounded class="drag app-bar">
     <v-app-bar-title>ITSD Tools</v-app-bar-title>
     <template #prepend>
       <v-btn v-if="isLoggedIn" color="on-tertiary" icon="fas fa-gear" @click="openSettings"></v-btn>
@@ -33,6 +33,7 @@
 <script setup>
 import { useMyStore } from '@/stores/items.js'
 import { ref, onMounted, computed, watch } from 'vue'
+//import bgImage from '@/assets/bg8.jpg'
 const store = useMyStore() // Access Pinia store
 const snackbar = ref(false)
 const snackbarText = ref('')
@@ -147,5 +148,19 @@ input:checked + .slider:before {
 
 .slider.round:before {
   border-radius: 50%;
+}
+
+.app-bar::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background-image: url('@/assets/bg.jpg');
+  background-size: cover;
+  background-position: center;
+  opacity: 0.3; /* Adjust this value to change the opacity */
+  z-index: -1;
 }
 </style>

@@ -14,6 +14,7 @@ import { useTheme } from "vuetify";
 import { onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router';
 import { handleAuthStateChange } from './firebase.js'
+import 'animate.css';
 const theme = useTheme()
 const store = useMyStore() 
 const router = useRouter();

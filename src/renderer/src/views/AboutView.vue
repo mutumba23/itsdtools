@@ -1,5 +1,5 @@
 <template>
-  <v-app-bar density="compact" color="tertiary" class="ma-0 drag" rounded>
+  <v-app-bar density="compact" color="tertiary" class="ma-0 drag app-bar" rounded>
     <v-app-bar-title>Version: {{appVersion}}<v-btn @click="showVersionHistory = true">Version History</v-btn></v-app-bar-title>
     <template #append>
       <v-btn
@@ -151,5 +151,19 @@ a:hover {
 a:active {
   color: white;
   text-decoration: underline;
+}
+
+.app-bar::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background-image: url('@/assets/bg.jpg');
+  background-size: cover;
+  background-position: center;
+  opacity: 0.3; /* Adjust this value to change the opacity */
+  z-index: -1;
 }
 </style>
