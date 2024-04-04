@@ -58,11 +58,11 @@
     >
       <v-card-actions class="py-0 my-0 pl-0">
         <v-card-title v-if="!showBrowserSettings"
-          ><span v-if="store.phoneMode">Phone Mode</span><span v-else>Chat Mode</span></v-card-title
+          ><span v-if="store.phoneMode && !store.settingsOverlay">Phone Mode</span><span v-if="!store.phoneMode && !store.settingsOverlay">Chat Mode</span><span v-if="store.settingsOverlay">Communication</span></v-card-title
         >
         <v-card-title v-else>Choose browser</v-card-title>
         <v-icon
-          v-if="!showBrowserSettings"
+          v-if="!showBrowserSettings && !store.settingsOverlay"
           class="mx-2"
           color="on-secondary"
           size="x-small"
@@ -71,7 +71,7 @@
           >fas fa-phone</v-icon
         >
         <v-icon
-          v-if="!showBrowserSettings"
+          v-if="!showBrowserSettings && !store.settingsOverlay"
           class="mx-2"
           color="on-secondary"
           size="x-small"
@@ -97,7 +97,7 @@
           v-if="
             (store.phoneMode && communication.showOnPhoneMode) ||
             (!store.phoneMode && communication.showOnChatMode) ||
-            showBrowserSettings
+            showBrowserSettings ||store.settingsOverlay
           "
           class="flex-nowrap animate__animated animate__backInUp"
         >

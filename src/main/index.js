@@ -520,6 +520,7 @@ function setupSettingsWindowIPCListeners() {
   //Hide winSettings
   ipcMain.on('minimize-winSettings', () => {
     manageWindow(winSettings, 'hide')
+    sendMessageToWindow(win, 'settingsOverlay', false)
   })
 
   //Send info to settingsComponent.vue about added item

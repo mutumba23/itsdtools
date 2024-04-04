@@ -99,10 +99,12 @@ const updateBrowserIconCustomLinkHandler = (data) => {
 
 const minimizeWinSettingsHandler = () => {
   store.settingsOverlay = false;
+  console.log("closed")
 }
 
 const settingsOverlayHandler = (data) => {
   store.settingsOverlay = data;
+  console.log("test")
 }
 
 const userLoggedInHandler = (data) => {
