@@ -9,7 +9,7 @@ import fs from 'fs/promises'
 import { spawn } from 'child_process'
 //import { runIDEM } from './scripts/idem/runIDEM.js';
 import { checkStatus } from './scripts/idem/checkStatus.js';
-import { runGpUpdate } from './scripts/icc4/gpUpdate.js';
+//import { runGpUpdate } from './scripts/icc4/gpUpdate.js';
 import { getMailboxPermissions } from './scripts/exchange/getMailboxPermissions.js';
 import { giveMailboxAccess } from './scripts/exchange/giveMailboxAccess.js';
 import { removeMailboxAccess } from './scripts/exchange/removeMailboxAccess.js';
@@ -429,9 +429,6 @@ function setupPLIPAssistWindowIPCListeners() {
           break;
         case 'check-status':
           result = await checkStatus(args);
-          break;
-        case 'gp-update':
-          result = await runGpUpdate(args);
           break;
         case 'get-mailbox-permissions':
           result = await getMailboxPermissions(args);

@@ -994,7 +994,7 @@ const scripts = ref([
     requiresOwner: false,
     multipleUsers: false,
     requiresAutomappingValue: false,
-    run: 'gp-update'
+   // run: 'gp-update'
   },
   {
     id: 9,
