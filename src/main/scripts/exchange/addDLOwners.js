@@ -37,6 +37,9 @@ const addDLOwners = ({ mailboxes, users, keepOwners, ownersToRemove }) => {
         if (stdout.includes("User canceled authentication")) {
           errorMessages.push("User canceled the authentication process.");
         }
+        if (stdout.includes("Block Remote Powershell")) {
+          errorMessages.push("Connection was blocked. Please make sure you use your adm account at @oneiig.onmicrosoft.com");
+        }
         if (errorMessages.length === 0) {
           errorMessages.push("An unknown error occurred.");
         }
