@@ -18,7 +18,9 @@
         @update:model-value="updateChartData"
       ></v-select>
       <div class="chart-container pa-0 ma-0">
-        <BarChart v-if="totalChartData" :chart-data="totalChartData" class="mb-8" />
+        <v-card-subtitle class="text-center">Trend</v-card-subtitle>
+        <SparklineComponent :value="sparklineData" />
+        <BarChart v-if="totalChartData" :chart-data="totalChartData" class="my-8" />
         <BarChart v-if="monthlyChartData" :chart-data="monthlyChartData" />
 
         <div class="mx-auto text-center">
@@ -46,6 +48,7 @@
 import { ref, onMounted } from 'vue'
 import { getButtonStatistics } from "../../firebase.js";
 import BarChart from "./BarChart.vue";
+import SparklineComponent from "./SparklineComponent.vue";
 const selectedCategory = ref({ name: 'Communication', value: 'communications' })
 const categories = ref([
   {
@@ -69,6 +72,7 @@ const targetMonth = ref('2024-03')
 const buttonStatistics = ref(null)
 const monthlyChartData = ref(null)
 const totalChartData = ref(null)
+const sparklineData = ref([]);
 
 const refreshData = async () => {
   const data = await getButtonStatistics();
@@ -85,6 +89,7 @@ const updateChartData = () => {
   const labels = [];
   const totalUsageCounts = [];
   const monthlyUsageCounts = [];
+  const monthlyTotals = {};
 
   filteredStatistics.forEach((stat) => {
     const totalUsageCount = Object.values(stat.monthlyUsageCounts).reduce((acc, count) => acc + count, 0);
@@ -101,6 +106,15 @@ const updateChartData = () => {
       } else {
         monthlyUsageCounts.push(null); // Push null to maintain the alignment with labels
       }
+
+      // Aggregate total clicks for each month
+      for (const [month, count] of Object.entries(stat.monthlyUsageCounts)) {
+        if (!monthlyTotals[month]) {
+          monthlyTotals[month] = 0;
+        }
+        monthlyTotals[month] += count;
+      }
+
     }
   });
 
@@ -145,6 +159,26 @@ const updateChartData = () => {
       }
     ],
   };
+
+  sparklineData.value = Object.entries(monthlyTotals)
+  .map(([month, count]) => {
+    const date = new Date(month);
+    const monthLabel = date.toLocaleString('default', { month: 'short' });
+    const year = date.getFullYear();
+    const monthNumber = date.getMonth(); // Get the month as a number (0-11)
+    return { label: monthLabel, value: count, year, monthNumber, date };
+  })
+  .filter(({ date }) => date <= new Date()) // Filter out months later than the current month
+  .sort((a, b) => {
+    if (a.year === b.year) {
+      return a.monthNumber - b.monthNumber; // Sort by month if years are the same
+    }
+    return a.year - b.year; // Sort by year
+  })
+  .map(({ label, value }) => ({ label, value })); // Remove the year, monthNumber, and date properties
+  console.log(sparklineData.value)
+  console.log(monthlyChartData.value)
+
 };
 
 const nextMonth = () => {

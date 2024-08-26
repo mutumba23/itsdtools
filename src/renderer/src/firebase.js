@@ -20,7 +20,7 @@ import {
   collection,
   arrayUnion,
   arrayRemove,
-  getDoc
+  getDoc,
 } from 'firebase/firestore'
 import { getYear, getMonth } from 'date-fns'
 import { v4 as uuidv4 } from 'uuid';
@@ -180,25 +180,58 @@ async function updateUserDocumentArray(userId, arrayName, newArray) {
 
   // Fetch the current array from the document
   const docSnapshot = await getDoc(userDoc);
-  const currentArray = docSnapshot.data()[arrayName];
+  const currentArray = docSnapshot.data()[arrayName] || [];
 
-  let filteredArray;
-  if (currentArray) {
-    // Filter out items from newArray that already exist in currentArray
-    filteredArray = newArray.filter(newItem => 
-      !currentArray.some(currentItem => currentItem.id === newItem.id)
-    );
-  } else {
-    // If currentArray is not defined, use newArray directly
-    filteredArray = newArray;
-  }
+  // Create a map of current items by their IDs
+  const currentMap = new Map(currentArray.map(item => [item.id, item]));
 
-  // Create an object with the array name as the key and the new array as the value
+  // Merge new items with existing items, preserving the "removed" property
+  const mergedArray = newArray.map(newItem => {
+    const currentItem = currentMap.get(newItem.id);
+    if (currentItem && currentItem.removed !== undefined) {
+      return { ...newItem, removed: currentItem.removed };
+    }
+    return newItem;
+  });
+
+  // Create an object with the array name as the key and the merged array as the value
   const update = {};
-  update[arrayName] = arrayUnion(...filteredArray);
+  update[arrayName] = mergedArray;
 
   // Update the user document
   await updateDoc(userDoc, update);
+}
+
+async function updateUserDocumentArrays(userId, updates) {
+  // Get a reference to the user document
+  const userDoc = doc(db, 'users', userId);
+
+  // Fetch the current document data
+  const docSnapshot = await getDoc(userDoc);
+  const currentData = docSnapshot.data() || {};
+
+  // Iterate over each array to update
+  for (const [arrayName, newArray] of Object.entries(updates)) {
+    const currentArray = currentData[arrayName] || [];
+
+    // Create a map of current items by their IDs
+    const currentMap = new Map(currentArray.map(item => [item.id, item]));
+
+    // Merge new items with existing items, preserving the "removed" property
+    const mergedArray = newArray.map(newItem => {
+      const currentItem = currentMap.get(newItem.id);
+      if (currentItem && currentItem.removed !== undefined) {
+        return { ...newItem, removed: currentItem.removed };
+      }
+      return newItem;
+    });
+
+    // Update the current data with the merged array
+    currentData[arrayName] = mergedArray;
+  }
+
+  // Update the user document with the combined data
+  await updateDoc(userDoc, currentData);
 }
 
 async function updateUserDocumentArrayItem(collectionName, documentId, arrayName, itemId, newValue) {
@@ -330,6 +363,30 @@ const resetPassword = async (email) => {
   }
 }
 
+const createUserDocument = async (user, customLinks) => {
+  const userDoc = doc(db, 'users', user.uid);
+
+  // Check if the document exists
+  const docSnapshot = await getDoc(userDoc);
+
+  if (!docSnapshot.exists()) {
+    // Create a new user document
+    const newUser = {
+      id: user.uid,
+      commonTools: [],
+      remoteAssistance: [],
+      communications: [],
+      customLinks: customLinks,
+    };
+
+    // Set the document data
+    await setDoc(userDoc, newUser);
+    console.log(`Document created with ID: ${user.uid}`);
+  } else {
+    console.log(`Document with ID: ${user.uid} already exists`);
+  }
+}
+
 export {
   updateMonthlyUsageCount,
   createDocumentsFromArray,
@@ -337,6 +394,7 @@ export {
   getDocumentsFromCollection,
   getDocumentFromCollection,
   updateUserDocumentArray,
+  updateUserDocumentArrays,
   updateUserDocumentArrayItem,
   addCustomLinkFirebase,
   removeCustomLinkFirebase,
@@ -346,5 +404,6 @@ export {
   updateDisplayName,
   login,
   resetPassword,
+  createUserDocument,
   firebaseApp as default
 }

@@ -160,6 +160,7 @@ export const useMyStore = defineStore('ITSDToolsStore', {
       url: null
     },
     admins: ['philip.nilsson@ingka.ikea.com', 'alexander.hulten@ingka.ikea.com'],
+    userLoggedInBefore: false,
     userLoggedIn: false,
     user: null,
     emailSent: false,
@@ -219,6 +220,7 @@ export const useMyStore = defineStore('ITSDToolsStore', {
       'configDone',
       'lastRunScripts',
       'emailSent',
+      'userLoggedInBefore',
     ],
   },
   getters: {

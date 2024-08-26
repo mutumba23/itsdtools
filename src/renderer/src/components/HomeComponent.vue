@@ -238,7 +238,7 @@
 <script setup>
 import { useMyStore } from '@/stores/items.js'
 import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
-import { updateMonthlyUsageCount, getDocumentsFromCollection, getDocumentFromCollection, updateUserDocumentArray, updateUserDocumentArrayItem } from '../firebase.js'
+import { updateMonthlyUsageCount, getDocumentsFromCollection, getDocumentFromCollection, updateUserDocumentArrays, updateUserDocumentArrayItem, createUserDocument } from '../firebase.js'
 const store = useMyStore()
 
 ///////////////////////////////////////////////////
@@ -539,7 +539,12 @@ const removeCustomLinkHandler = async () => {
 //Mounted
 ///////////////////////////////////////////////////
 onMounted(async () => {
-  store.UPDATE_COMMON_TOOLS();
+  if(store.user && !store.userLoggedInBefore) {
+      await createUserDocument(store.user, store.customLinks)
+      store.userLoggedInBefore = true;
+    }
+
+  //store.UPDATE_COMMON_TOOLS();
   window.api.addEventListener("drag-end", dragEndHandler)
   window.api.addEventListener("removed-item", removedItemHandler)
   window.api.addEventListener("open-imu-response", imuResponse)
@@ -553,9 +558,11 @@ onMounted(async () => {
 
   // Update the tools for the user
   if(store.user.uid) {
-    await updateUserDocumentArray(store.user.uid, 'commonTools', commonToolsDocs);
-    await updateUserDocumentArray(store.user.uid, 'communications', communicationDocs);
-    await updateUserDocumentArray(store.user.uid, 'remoteAssistance', remoteAssistanceDocs);
+    await updateUserDocumentArrays(store.user.uid, {
+      commonTools: commonToolsDocs,
+      communications: communicationDocs,
+      remoteAssistance: remoteAssistanceDocs
+    });
 
     // Fetch the user document
     const commonTools = await fetchUserArray('commonTools');
