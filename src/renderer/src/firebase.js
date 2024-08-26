@@ -17,9 +17,13 @@ import {
   setDoc,
   increment,
   getDocs,
-  collection
+  collection,
+  arrayUnion,
+  arrayRemove,
+  getDoc
 } from 'firebase/firestore'
 import { getYear, getMonth } from 'date-fns'
+import { v4 as uuidv4 } from 'uuid';
 
 const firebaseConfig = {
   apiKey: import.meta.env.RENDERER_VITE_FIREBASE_API_KEY,
@@ -132,6 +136,128 @@ async function getButtonStatistics() {
   }
 }
 
+async function getDocumentsFromCollection(collectionName) {
+  try {
+    const querySnapshot = await getDocs(collection(db, collectionName));
+    const documents = [];
+
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      // Push the data to the documents array
+      documents.push({
+        id: doc.id,
+        ...data
+      });
+    });
+
+    return documents;
+  } catch (error) {
+    console.error(`Error getting documents from ${collectionName}:`, error);
+    return []; // Return an empty array if an error occurs
+  }
+}
+
+async function getDocumentFromCollection(collectionName, documentId) {
+  // Get a reference to the document
+  const docRef = doc(db, collectionName, documentId);
+
+  // Fetch the document
+  const docSnapshot = await getDoc(docRef);
+
+  if (docSnapshot.exists()) {
+    // The document exists, return the data
+    return docSnapshot.data();
+  } else {
+    // The document does not exist
+    console.error('No such document!');
+    return null;
+  }
+}
+
+async function updateUserDocumentArray(userId, arrayName, newArray) {
+  // Get a reference to the user document
+  const userDoc = doc(db, 'users', userId);
+
+  // Fetch the current array from the document
+  const docSnapshot = await getDoc(userDoc);
+  const currentArray = docSnapshot.data()[arrayName];
+
+  let filteredArray;
+  if (currentArray) {
+    // Filter out items from newArray that already exist in currentArray
+    filteredArray = newArray.filter(newItem => 
+      !currentArray.some(currentItem => currentItem.id === newItem.id)
+    );
+  } else {
+    // If currentArray is not defined, use newArray directly
+    filteredArray = newArray;
+  }
+
+  // Create an object with the array name as the key and the new array as the value
+  const update = {};
+  update[arrayName] = arrayUnion(...filteredArray);
+
+  // Update the user document
+  await updateDoc(userDoc, update);
+}
+
+async function updateUserDocumentArrayItem(collectionName, documentId, arrayName, itemId, newValue) {
+  // Get a reference to the document
+  const docRef = doc(db, collectionName, documentId);
+
+  // Fetch the document
+  const docSnapshot = await getDoc(docRef);
+
+  if (docSnapshot.exists()) {
+    // The document exists, get the data
+    const data = docSnapshot.data();
+
+    // Find the item in the array and update it
+    const array = data[arrayName];
+    const itemIndex = array.findIndex(item => item.id === itemId);
+    if (itemIndex !== -1) {
+      array[itemIndex].removed = newValue;
+    }
+
+    // Write the document back to Firestore
+    await setDoc(docRef, data);
+  } else {
+    // The document does not exist
+    console.error('No such document!');
+  }
+}
+
+async function addCustomLinkFirebase(userId, newLink) {
+  // Get a reference to the user document
+  const userDoc = doc(db, 'users', userId);
+
+  // Add an id to the new link
+  newLink.id = uuidv4();
+
+  // Add the new link to the customLinks array in the user document
+  await updateDoc(userDoc, {
+    customLinks: arrayUnion(newLink)
+  });
+}
+
+async function removeCustomLinkFirebase(userId, idToRemove) {
+  // Get a reference to the user document
+  const userDoc = doc(db, 'users', userId);
+
+  // Fetch the current document data
+  const userDocData = (await getDoc(userDoc)).data();
+
+  // Find the link with the matching id
+  const linkToRemove = userDocData.customLinks.find(link => link.id === idToRemove);
+
+  // If the link was found, remove it
+  if (linkToRemove) {
+    await updateDoc(userDoc, {
+      customLinks: arrayRemove(linkToRemove)
+    });
+  }
+}
+
 let currentUser = null;
 const handleAuthStateChange = (callback) => {
   onAuthStateChanged(auth, (user) => {
@@ -208,6 +334,12 @@ export {
   updateMonthlyUsageCount,
   createDocumentsFromArray,
   getButtonStatistics,
+  getDocumentsFromCollection,
+  getDocumentFromCollection,
+  updateUserDocumentArray,
+  updateUserDocumentArrayItem,
+  addCustomLinkFirebase,
+  removeCustomLinkFirebase,
   handleAuthStateChange,
   signout,
   sendVerificationEmail,

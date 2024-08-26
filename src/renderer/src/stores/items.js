@@ -40,7 +40,7 @@ export const useMyStore = defineStore('ITSDToolsStore', {
         order: 2,
         label: 'Phone',
         icon: 'fas fa-phone',
-        link: 'http://itsdphone.ingka.com/',
+        link: 'https://ingka.my.niceincontact.com',
         iconColor: 'primary',
         browserIcon: 'fab fa-chrome',
         showOnPhoneMode: true,
@@ -120,26 +120,20 @@ export const useMyStore = defineStore('ITSDToolsStore', {
       },
       {
         id: 2,
-        label: 'IMU',
-        icon: 'fas fa-users',
-        category: 'commonTools'
-      },
-      {
-        id: 3,
-        label: 'ADUC',
-        icon: 'fas fa-users',
-        category: 'commonTools'
-      },
-      {
-        id: 4,
         label: 'MyIdentity',
         icon: 'fas fa-id-card',
         category: 'commonTools'
       },
       {
-        id: 5,
+        id: 3,
         label: 'eGuides',
         icon: 'fas fa-graduation-cap',
+        category: 'commonTools'
+      },
+      {
+        id: 4,
+        label: 'Admin Tools (GST)',
+        icon: 'fas fa-unlock',
         category: 'commonTools'
       },
     ],
@@ -270,7 +264,7 @@ export const useMyStore = defineStore('ITSDToolsStore', {
         default:
           return
       }
-      const itemIndex = categoryArray.findIndex((item) => item.id === id)
+      const itemIndex = categoryArray.findIndex((item) => item.id === id.toString())
       if (itemIndex !== -1) {
         const item = categoryArray[itemIndex]
         item.removed = value

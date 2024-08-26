@@ -82,42 +82,66 @@ const updateChartData = () => {
     (stat) => stat.category === selectedCategory.value.value
   );
 
-  const labels = filteredStatistics.map((stat) => stat.label);
+  const labels = [];
+  const totalUsageCounts = [];
+  const monthlyUsageCounts = [];
 
-  // Calculate total usage counts by summing up monthly counts
-  const totalUsageCounts = filteredStatistics.map((stat) => {
-    return Object.values(stat.monthlyUsageCounts).reduce((acc, count) => acc + count, 0);
+  filteredStatistics.forEach((stat) => {
+    const totalUsageCount = Object.values(stat.monthlyUsageCounts).reduce((acc, count) => acc + count, 0);
+    const monthlyUsageCount = stat.monthlyUsageCounts[targetMonth.value] || 0;
+
+    // Only include statistics where the total or monthly usage count is greater than 0
+    if (totalUsageCount > 0) {
+      labels.push(stat.label);
+      totalUsageCounts.push(totalUsageCount);
+
+      // Only push monthly usage count if it is greater than 0
+      if (monthlyUsageCount > 0) {
+        monthlyUsageCounts.push(monthlyUsageCount);
+      } else {
+        monthlyUsageCounts.push(null); // Push null to maintain the alignment with labels
+      }
+    }
   });
 
-  const monthlyUsageCounts = filteredStatistics.map((stat) => {
-    return stat.monthlyUsageCounts[targetMonth.value] || 0; // Count of clicks for the specified month, default to 0 if not found
-  });
+  // Filter out the entries where monthlyUsageCounts is null
+  const filteredLabels = [];
+  const filteredTotalUsageCounts = [];
+  const filteredMonthlyUsageCounts = [];
+
+  for (let i = 0; i < monthlyUsageCounts.length; i++) {
+    if (monthlyUsageCounts[i] !== null) {
+      filteredLabels.push(labels[i]);
+      filteredTotalUsageCounts.push(totalUsageCounts[i]);
+      filteredMonthlyUsageCounts.push(monthlyUsageCounts[i]);
+    }
+  }
 
   const targetDate = new Date(targetMonth.value); // Create a Date object for the target month
   const monthLabel = targetDate.toLocaleString('default', { month: 'long' });
 
   totalChartData.value = {
-    labels: labels,
+    labels: filteredLabels,
     datasets: [
       {
         label: "Total Usage Count",
         backgroundColor: "rgba(255, 99, 132, 0.2)",
         borderColor: "rgba(255, 99, 132, 1)",
         borderWidth: 1,
-        data: totalUsageCounts,
+        data: filteredTotalUsageCounts,
       }
     ],
   };
 
   monthlyChartData.value = {
-    labels: labels,
+    labels: filteredLabels,
     datasets: [
       {
         label: monthLabel,
         backgroundColor: "rgba(54, 162, 235, 0.2)",
         borderColor: "rgba(54, 162, 235, 1)",
         borderWidth: 1,
-        data: monthlyUsageCounts,
+        data: filteredMonthlyUsageCounts,
       }
     ],
   };

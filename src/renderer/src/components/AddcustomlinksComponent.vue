@@ -58,7 +58,7 @@
   <!--List custom links and remove button-->
   <v-card v-if="customLinks.length > 0" flat class="pb-4 custom-links-card show-scrollbar">
     <v-card-title>Your customs links</v-card-title>
-    <v-row v-for="(button, index) in customLinks" :key="index" class="flex-nowrap">
+    <v-row v-for="(button, id) in customLinks" :key="id" class="flex-nowrap">
       <v-btn
         class="ml-4 flex-grow-1 justify-start"
         color="on-tertiary"
@@ -72,7 +72,7 @@
       </v-btn>
 
       <span class="d-flex mr-2"
-        ><v-icon color="primary" class="align-self-center" @click="changeBrowser(index)">{{
+        ><v-icon color="primary" class="align-self-center" @click="changeBrowser(button.id)">{{
           button.browser
         }}</v-icon></span
       >
@@ -81,7 +81,7 @@
           color="error"
           size="small"
           class="mr-5 align-self-center"
-          @click="removeCustomLink(index)"
+          @click="removeCustomLink(button.id)"
           >fas fa-trash</v-icon
         ></span
       >
@@ -90,8 +90,9 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useMyStore } from '@/stores/items.js'
+import { addCustomLinkFirebase, removeCustomLinkFirebase, getDocumentFromCollection } from '../firebase.js'
 const store = useMyStore()
 const showSnackbar = ref(false)
 const incognito = ref(false)
@@ -100,9 +101,10 @@ const loading = ref(false)
 const snackbarText = ref('')
 const url = ref('')
 const linkName = ref('')
+const userCustomLinks = ref([])
 
 const customLinks = computed(() => {
-  return store.customLinks
+  return userCustomLinks.value ? userCustomLinks.value : [];
 })
 const onSubmit = () => {
   if (!form.value) return
@@ -115,8 +117,7 @@ const onSubmit = () => {
     snackbarText.value = 'Custom link added'
   }, 500)
 }
-const addCustomLink = () => {
-  console.log(incognito.value)
+const addCustomLink = async () => {
   let icon = 'fab fa-edge'
   if (incognito.value) {
     icon = 'fas fa-mask'
@@ -128,13 +129,25 @@ const addCustomLink = () => {
     link: url.value,
     incognito: incognito.value
   }
-  window.api.sendMessage('addCustomLink', newLink)
-  store.addCustomLink(newLink)
+  //store.addCustomLink(newLink) //Uncomment to use Pinia store
+  await addCustomLinkFirebase(store.user.uid, newLink)
+    .then(async () => {
+      window.api.sendMessage('addCustomLink', newLink)
+      const customLinks = await fetchUserArray('customLinks');
+      userCustomLinks.value = customLinks;
+    });
 }
-const removeCustomLink = (index) => {
-  window.api.sendMessage('removeCustomLink', index)
-  store.removeCustomLink(index)
-  snackbarText.value = 'Custom link removed'
+const removeCustomLink = async (id) => {
+  await removeCustomLinkFirebase(store.user.uid, id)
+    .then(async () => {
+      window.api.sendMessage('removeCustomLink', id)
+      const customLinks = await fetchUserArray('customLinks');
+      userCustomLinks.value = customLinks;
+    });
+  //Uncomment below to use Pinia store instead
+  //window.api.sendMessage('removeCustomLink', index)
+  //store.removeCustomLink(index)
+  //snackbarText.value = 'Custom link removed'
 }
 const changeBrowser = (index) => {
   window.api.sendMessage('updateBrowserIconCustomLink', index)
@@ -149,6 +162,24 @@ function isValidDomain(url) {
   // You can replace this with a more comprehensive domain validation logic
   return /^[a-z0-9.-]+\.[a-z]{2,}$/i.test(domain)
 }
+const fetchUserArray = async (arrayName) => {
+  const userDoc = await getDocumentFromCollection('users', store.user.uid);
+  if (userDoc) {
+    // Use arrayName to access the desired array
+    return userDoc[arrayName];
+  } else {
+    console.log('No such document!');
+    return null;
+  }
+}
+
+///////////////////////Mounted////////////
+onMounted(async () => {
+  const customLinks = await fetchUserArray('customLinks');
+  userCustomLinks.value = customLinks;
+})
+
+//////////////////////////////////////////
 </script>
 
 <style scoped>

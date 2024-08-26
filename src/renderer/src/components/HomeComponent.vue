@@ -24,6 +24,24 @@
     </v-card>
   </v-dialog>
 
+  <!--GST info dialog-->
+  <v-dialog v-model="showSavedCredInfo">
+  <v-alert type="warning" class="pb-2">
+    <v-icon class="float-right" @click="showSavedCredInfo = false">fas fa-xmark</v-icon>
+    <v-card-title>Missing GST Account Credentials</v-card-title>
+    <v-card-text>
+      <p>We couldn't find your GST account credentials in the credential manager.</p>
+      <p>To use this feature, please save your GST account credentials in the Windows Credential Manager:</p>
+      <ol>
+        <li>Go to \\ITSEELM-NT0007.ikea.com\Common_C\IOS-SA DPOP training\Helpdesk\ihu\lhul</li>
+        <li>Run any of the shortcuts</li>
+        <li>Type in your password and click Enter</li>
+      </ol>
+      <p>After saving your credentials once with above method, you can use the quick button in ITSDTools to run the tool with your gst account.</p>
+    </v-card-text>
+  </v-alert>
+</v-dialog>
+
   <!--Snackbar--><v-snackbar
     v-model="showSnackbar"
     :timeout="3000"
@@ -220,7 +238,7 @@
 <script setup>
 import { useMyStore } from '@/stores/items.js'
 import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
-import { updateMonthlyUsageCount } from '../firebase.js'
+import { updateMonthlyUsageCount, getDocumentsFromCollection, getDocumentFromCollection, updateUserDocumentArray, updateUserDocumentArrayItem } from '../firebase.js'
 const store = useMyStore()
 
 ///////////////////////////////////////////////////
@@ -232,6 +250,11 @@ const snackbarText = ref('')
 const showRANO = ref(false)
 const computername = ref('')
 const loading = ref(false)
+const showSavedCredInfo = ref(false )
+const userCommonTools = ref([])
+const userCommunications = ref([])
+const userRemoteAssistance = ref([])
+const userCustomLinks = ref([])
 // Data Values END
 ///////////////////////////////////////////////////
 
@@ -239,18 +262,18 @@ const loading = ref(false)
 // Computed values
 ///////////////////////////////////////////////////
 const sortedCommunications = computed(() => {
-  return store.communications
+  return userCommunications.value
     .filter((communication) => !communication.removed)
     .sort((a, b) => a.order - b.order)
 })
 const customLinks = computed(() => {
-  return store.customLinks
-})
+  return userCustomLinks.value ? userCustomLinks.value : [];
+});
 const sortedRemoteAssistance = computed(() => {
-  return store.remoteAssistance.filter((remoteAssistance) => !remoteAssistance.removed)
+  return userRemoteAssistance.value.filter((remoteAssistance) => !remoteAssistance.removed)
 })
 const sortedCommonTools = computed(() => {
-  return store.commonTools.filter((commonTools) => !commonTools.removed)
+  return userCommonTools.value.filter((commonTools) => !commonTools.removed)
 })
 const rules = computed(() => [
   (v) => {
@@ -300,36 +323,33 @@ const dragEnd = (event) => {
   dropContainer.classList.remove('dragging')
   window.api.sendMessage('drag-end')
 }
-const drop = (event) => {
+const drop = async (event) => {
   event.preventDefault()
   const data = event.dataTransfer.getData('application/json')
   const draggedObject = JSON.parse(data)
 
   switch (draggedObject.category) {
-    case 'communications':
-      store.toggleItemRemovedState({
-        category: 'communications',
-        id: draggedObject.id,
-        value: false
-      })
+    case 'communications': {
+      await updateUserDocumentArrayItem('users', store.user.uid, 'communications', draggedObject.id, false);
+      const communications = await fetchUserArray('communications');
+      userCommunications.value = communications;
       window.api.sendMessage('added-item', draggedObject)
       break
-    case 'remoteAssistance':
-      store.toggleItemRemovedState({
-        category: 'remoteAssistance',
-        id: draggedObject.id,
-        value: false
-      })
+    }
+    case 'remoteAssistance': {
+      await updateUserDocumentArrayItem('users', store.user.uid, 'remoteAssistance', draggedObject.id, false);
+      const remoteAssistance = await fetchUserArray('remoteAssistance');
+      userRemoteAssistance.value = remoteAssistance;
       window.api.sendMessage('added-item', draggedObject)
       break
-    case 'commonTools':
-      store.toggleItemRemovedState({
-        category: 'commonTools',
-        id: draggedObject.id,
-        value: false
-      })
+    }
+    case 'commonTools': {
+      await updateUserDocumentArrayItem('users', store.user.uid, 'commonTools', draggedObject.id, false);
+      const commonTools = await fetchUserArray('commonTools');
+      userCommonTools.value = commonTools;
       window.api.sendMessage('added-item', draggedObject)
       break
+    }
     default:
       showSnackbar.value = true
       snackbarText.value = 'Something went wrong'
@@ -415,8 +435,12 @@ const commonToolsButton = async (item) => {
           openExternalLink("https://iassist.ingka.com/login/signin", "fab fa-edge", { incognito: false });
           break;
         case "IMU":
-          loading.value = true;
           window.api.sendMessage('open-imu');
+          setTimeout(() => {
+            if(!showSavedCredInfo.value){
+              loading.value = true;
+            }
+          }, 500);
           setTimeout(() => {
             loading.value = false; // Set loading to false after 5 seconds
           }, 2000);
@@ -440,6 +464,9 @@ const commonToolsButton = async (item) => {
         case "PLIPAssist":
           window.api.sendMessage('open-PLIPAssist');
           break;
+        case "Admin Tools (GST)":
+          window.api.sendMessage('open-gstShare');
+          break;
         default:
           break;
       }
@@ -449,35 +476,61 @@ const dragEndHandler = () => {
     const dropContainer = document.getElementById("dropContainer");
     dropContainer.classList.remove("dragging");
 }
-const removedItemHandler = (data) => {
+const removedItemHandler = async (data) => {
     // Handle removed items based on their category
     switch (data.category) {
-      case "communications":
-        store.toggleItemRemovedState({
-          category: "communications",
-          id: data.id,
-          value: true,
-        });
+      case "communications": {
+        const communications = await fetchUserArray('communications');
+        userCommunications.value = communications;
         break;
-      case "remoteAssistance":
-        store.toggleItemRemovedState({
-          category: "remoteAssistance",
-          id: data.id,
-          value: true,
-        });
+      }
+      case "remoteAssistance": {
+        const remoteAssistance = await fetchUserArray('remoteAssistance');
+        userRemoteAssistance.value = remoteAssistance;
         break;
-      case "commonTools":
-        store.toggleItemRemovedState({
-          category: "commonTools",
-          id: data.id,
-          value: true,
-        });
+      }
+      case "commonTools": {
+      const commonTools = await fetchUserArray('commonTools');
+      userCommonTools.value = commonTools;
         break;
+      }
       default:
         console.log("Category not matched:", data.category);
         break;
     }
   }
+
+const imuResponse = (data) => {
+  console.log(data.message); // Logs the message
+  console.log(data.error); // Logs the error message
+  console.log(data.stdout); // Logs stdout
+  console.log(data.stderr); // Logs stderr
+
+  if (data.message === 'No saved credentials found') {
+    showSavedCredInfo.value = true;
+  }
+  }
+
+const fetchUserArray = async (arrayName) => {
+  const userDoc = await getDocumentFromCollection('users', store.user.uid);
+  if (userDoc) {
+    // Use arrayName to access the desired array
+    return userDoc[arrayName];
+  } else {
+    console.log('No such document!');
+    return null;
+  }
+}
+
+const addCustomLinkHandler = async () => {
+  const customLinks = await fetchUserArray('customLinks');
+  userCustomLinks.value = customLinks;
+}
+
+const removeCustomLinkHandler = async () => {
+  const customLinks = await fetchUserArray('customLinks');
+  userCustomLinks.value = customLinks;
+}
 
 //Methods END
 ///////////////////////////////////////////////////
@@ -485,10 +538,35 @@ const removedItemHandler = (data) => {
 ///////////////////////////////////////////////////
 //Mounted
 ///////////////////////////////////////////////////
-onMounted(() => {
+onMounted(async () => {
   store.UPDATE_COMMON_TOOLS();
   window.api.addEventListener("drag-end", dragEndHandler)
   window.api.addEventListener("removed-item", removedItemHandler)
+  window.api.addEventListener("open-imu-response", imuResponse)
+  window.api.addEventListener("addCustomLink", addCustomLinkHandler)
+  window.api.addEventListener("removeCustomLink", removeCustomLinkHandler)
+
+  // Fetch tools from the database
+  const commonToolsDocs = await getDocumentsFromCollection('commonTools');
+  const communicationDocs = await getDocumentsFromCollection('communications');
+  const remoteAssistanceDocs = await getDocumentsFromCollection('remoteAssistance');
+
+  // Update the tools for the user
+  if(store.user.uid) {
+    await updateUserDocumentArray(store.user.uid, 'commonTools', commonToolsDocs);
+    await updateUserDocumentArray(store.user.uid, 'communications', communicationDocs);
+    await updateUserDocumentArray(store.user.uid, 'remoteAssistance', remoteAssistanceDocs);
+
+    // Fetch the user document
+    const commonTools = await fetchUserArray('commonTools');
+    const communications = await fetchUserArray('communications');
+    const remoteAssistance = await fetchUserArray('remoteAssistance');
+    const customLinks = await fetchUserArray('customLinks');
+    userCommonTools.value = commonTools;
+    userCommunications.value = communications;
+    userRemoteAssistance.value = remoteAssistance;
+    userCustomLinks.value = customLinks;
+  }
 
   //Uncomment below to create documents in the database
   //const array = store.updatedCommonTools;
@@ -500,6 +578,9 @@ onMounted(() => {
 onBeforeUnmount(() => {
   window.api.removeEventListener("drag-end", dragEndHandler)
   window.api.removeEventListener("removed-item", removedItemHandler)
+  window.api.removeEventListener("open-imu-response", imuResponse)
+  window.api.removeEventListener("addCustomLink", addCustomLinkHandler)
+  window.api.removeEventListener("removeCustomLink", removeCustomLinkHandler)
 })
 //Mounted END
 ///////////////////////////////////////////////////

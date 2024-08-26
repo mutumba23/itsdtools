@@ -124,50 +124,51 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useMyStore } from '@/stores/items.js'
+import { getDocumentFromCollection, updateUserDocumentArrayItem } from '../firebase.js'
 const store = useMyStore()
 const showSnackbar = ref(false)
 const snackbarText = ref('')
+const userCommonTools = ref([])
+const userCommunications = ref([])
+const userRemoteAssistance = ref([])
 
 const sortedCommunications = computed(() => {
-  return store.communications
+  return userCommunications.value
     .filter((communication) => communication.removed)
     .sort((a, b) => a.order - b.order)
 })
 const sortedRemoteAssistance = computed(() => {
-  return store.remoteAssistance.filter((remoteAssistance) => remoteAssistance.removed)
+  return userRemoteAssistance.value.filter((remoteAssistance) => remoteAssistance.removed)
 })
 const sortedCommonTools = computed(() => {
-  return store.commonTools.filter((commonTools) => commonTools.removed)
+  return userCommonTools.value.filter((commonTools) => commonTools.removed)
 })
-const drop = (event) => {
+const drop = async (event) => {
   const data = event.dataTransfer.getData('application/json')
   const draggedObject = JSON.parse(data)
 
   switch (draggedObject.category) {
-    case 'communications':
-      store.toggleItemRemovedState({
-        category: 'communications',
-        id: draggedObject.id,
-        value: true
-      })
+    case 'communications': {
+      await updateUserDocumentArrayItem('users', store.user.uid, 'communications', draggedObject.id, true);
+      const communications = await fetchUserArray('communications');
+      userCommunications.value = communications;
       window.api.sendMessage('removed-item', draggedObject)
       break
-    case 'remoteAssistance':
-      store.toggleItemRemovedState({
-        category: 'remoteAssistance',
-        id: draggedObject.id,
-        value: true
-      })
+    }
+    case 'remoteAssistance': {
+      await updateUserDocumentArrayItem('users', store.user.uid, 'remoteAssistance', draggedObject.id, true);
+      const remoteAssistance = await fetchUserArray('remoteAssistance');
+      userRemoteAssistance.value = remoteAssistance;
       window.api.sendMessage('removed-item', draggedObject)
       break
-    case 'commonTools':
-      store.toggleItemRemovedState({
-        category: 'commonTools',
-        id: draggedObject.id,
-        value: true
-      })
+    }
+    case 'commonTools': {
+      await updateUserDocumentArrayItem('users', store.user.uid, 'commonTools', draggedObject.id, true);
+      const commonTools = await fetchUserArray('commonTools');
+      userCommonTools.value = commonTools;
       window.api.sendMessage('removed-item', draggedObject)
       break
+    }
     default:
       showSnackbar.value = true
       snackbarText.value = 'Something went wrong'
@@ -188,35 +189,42 @@ const dragEnd = (event) => {
   trashbin.classList.remove('dragging')
   window.api.sendMessage('drag-end')
 }
+const fetchUserArray = async (arrayName) => {
+  const userDoc = await getDocumentFromCollection('users', store.user.uid);
+  if (userDoc) {
+    // Use arrayName to access the desired array
+    return userDoc[arrayName];
+  } else {
+    console.log('No such document!');
+    return null;
+  }
+}
 ///////////////////////////////////////////////////
 //Mounted
 ///////////////////////////////////////////////////
-onMounted(() => {
+onMounted(async () => {
   const trashbin = document.getElementById('trashbin')
 
-  window.api.addEventListener('added-item', (data) => {
+  window.api.addEventListener('added-item', async (data) => {
     switch (data.category) {
-      case 'communications':
-        store.toggleItemRemovedState({
-          category: 'communications',
-          id: data.id,
-          value: false
-        })
+      case 'communications': {
+        await updateUserDocumentArrayItem('users', store.user.uid, 'communications', data.id, false);
+        const communications = await fetchUserArray('communications');
+        userCommunications.value = communications;
         break
-      case 'remoteAssistance':
-        store.toggleItemRemovedState({
-          category: 'remoteAssistance',
-          id: data.id,
-          value: false
-        })
+      }
+      case 'remoteAssistance': {
+        await updateUserDocumentArrayItem('users', store.user.uid, 'remoteAssistance', data.id, false);
+        const remoteAssistance = await fetchUserArray('remoteAssistance');
+        userRemoteAssistance.value = remoteAssistance;
         break
-      case 'commonTools':
-        store.toggleItemRemovedState({
-          category: 'commonTools',
-          id: data.id,
-          value: false
-        })
+      }
+      case 'commonTools': {
+        await updateUserDocumentArrayItem('users', store.user.uid, 'commonTools', data.id, false);
+        const commonTools = await fetchUserArray('commonTools');
+        userCommonTools.value = commonTools;
         break
+      }
       default:
         console.log('Matchar ej')
         break
@@ -228,6 +236,14 @@ onMounted(() => {
   window.api.addEventListener('drag-end', () => {
     trashbin.classList.remove('dragging')
   })
+
+  // Fetch the user document
+  const commonTools = await fetchUserArray('commonTools');
+  const communications = await fetchUserArray('communications');
+  const remoteAssistance = await fetchUserArray('remoteAssistance');
+  userCommonTools.value = commonTools;
+  userCommunications.value = communications;
+  userRemoteAssistance.value = remoteAssistance;
 })
 //Mounted END
 ///////////////////////////////////////////////////

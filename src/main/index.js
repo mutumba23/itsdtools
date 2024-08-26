@@ -17,6 +17,7 @@ import { giveDLAccess } from './scripts/exchange/giveDLAccess.js';
 import { removeDLAccess } from './scripts/exchange/removeDLAccess.js';
 import { addDLOwners } from './scripts/exchange/addDLOwners.js';
 import { installExchangeModule } from './scripts/dependencies/installExchangeModule.js';
+import { exec } from 'child_process';
 
 
 // Enable auto-launch
@@ -163,49 +164,84 @@ function sendMessageToWindow(window, channel, message) {
 
 //Setup Main listeners
 function setupMainWindowIPCListeners() {
-  //Open remote assistance
-  ipcMain.on('open-remote-assistance', () => {
-    spawnProcess('cmd.exe', ['/c', 'start', '%windir%\\system32\\msra.exe', '/offerra'])
-  })
+  //Open with GST account
+  function openAppWithCredentials(event, appName, appPath, args) {
+    const user = `${process.env.USERDOMAIN}\\GST${process.env.username}`;
+    const argsString = args ? ` -ArgumentList \\"'${args.join(' ')}'\\"` : '';
+    exec(`cmdkey /list | findstr ${user}`, (error, stdout, stderr) => {
+      if (error || stderr || !stdout) {
+        console.log(`No saved credentials found for user: ${user}`);
+        event.reply(`${event}-response`, { message: 'No saved credentials found', error: error ? error.message : null, stdout, stderr });
+        return;
+      }
+      console.log(`Saved credentials found for user: ${user}`);
+      const command = `runas /user:${user} /savecred "powershell -c start-process -FilePath \\"'${appPath}'\\"${argsString} -verb runAs"`;
+      exec(command, (error, stdout, stderr) => {
+        if (error) {
+          console.log(`error: ${error.message}`);
+          event.reply(`${event}-response`, { message: 'Error executing command', error: error.message, stdout, stderr });
+          return;
+        }
+        if (stderr) {
+          console.log(`stderr: ${stderr}`);
+          event.reply(`${event}-response`, { message: 'Command executed with errors', error: null, stdout, stderr });
+          return;
+        }
+        console.log(`stdout: ${stdout}`);
+        event.reply(`${event}-response`, { message: 'Command executed successfully', error: null, stdout, stderr });
+      });
+    });
+  }
 
-  //Open Quick Assist
-  ipcMain.on('open-quick-assist', () => {
-    spawnProcess('cmd.exe', ['/c', 'start', 'C:\\Windows\\System32\\quickassist.lnk'])
-  })
+// Open IMU
+ipcMain.on('open-imu', (event) => {
+  openAppWithCredentials(event, 'imu', 'C:\\Program Files\\IKEA Management Tools\\IKEA Management Utility.exe');
+});
 
-  //Run RANO
-  ipcMain.on('run-rano', (event, computername) => {
-    spawnProcess('cmd.exe', [
-      '/c',
-      'start',
-      '%windir%\\system32\\mstsc.exe',
-      '/shadow:1',
-      '/v:' + computername.trim(),
-      '/control'
-    ])
-  })
+// Open ADUC
+ipcMain.on('open-aduc', (event) => {
+  openAppWithCredentials(event, 'aduc', 'dsa.msc');
+});
 
-  //Open Snipping Tool
-  ipcMain.on('open-snipping-tool', () => {
-    spawnProcess('cmd.exe', ['/c', 'start', 'snippingtool'])
-  })
+//Open Remote Assistance
+ipcMain.on('open-remote-assistance', (event) => {
+  openAppWithCredentials(event, 'remote-assistance', '%windir%\\system32\\msra.exe', ['/offerra']);
+});
 
-  //Open IMU
-  ipcMain.on('open-imu', () => {
-    const exePath = '"C:\\Program Files\\IKEA Management Tools\\IKEA Management Utility.exe"'
-    spawnProcess(exePath, [], {
-      windowsHide: true, // Hides the window that would normally open with the spawned process
-      shell: true // Required for paths containing spaces
-    })
-  })
+// Open GST account shortcuts share
+ipcMain.on('open-gstShare', (event) => {
+  const command = `explorer.exe \\\\ITSEELM-NT0007.ikea.com\\Common_C\\IOS-SA DPOP training\\Helpdesk\\ihu\\lhul`;
+  exec(command, (error, stdout, stderr) => {
+    if (error) {
+      console.log(`error: ${error.message}`);
+      event.reply(`${event}-response`, { message: 'Error executing command', error: error.message, stdout, stderr });
+      return;
+    }
+    if (stderr) {
+      console.log(`stderr: ${stderr}`);
+      event.reply(`${event}-response`, { message: 'Command executed with errors', error: null, stdout, stderr });
+      return;
+    }
+    console.log(`stdout: ${stdout}`);
+    event.reply(`${event}-response`, { message: 'Command executed successfully', error: null, stdout, stderr });
+  });
+});
 
-  //Open ADUC
-  ipcMain.on('open-aduc', () => {
-    spawnProcess('dsa.msc', [], {
-      windowsHide: true, // Hides the window that would normally open with the spawned process
-      shell: true // Required to run commands directly in the shell
-    })
-  })
+//Run RANO
+ipcMain.on('run-rano', (event, computername) => {
+  openAppWithCredentials(event, 'rano', '%windir%\\system32\\mstsc.exe', ['/shadow:1', '/v:' + computername.trim(), '/control']);
+});
+
+//Open Quick Assist
+ipcMain.on('open-quick-assist', () => {
+  spawnProcess('cmd.exe', ['/c', 'start', 'C:\\Windows\\System32\\quickassist.lnk'])
+})
+
+
+//Open Snipping Tool
+ipcMain.on('open-snipping-tool', () => {
+  spawnProcess('cmd.exe', ['/c', 'start', 'snippingtool'])
+})
 
   //Open External Link
   ipcMain.on('open-external-link', async (event, link, browser, options) => {

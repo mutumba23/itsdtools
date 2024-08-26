@@ -85,13 +85,13 @@ const configDoneHandler = (data) => {
   store.SET_CONFIG_DONE(data);
 }
 
-const addCustomLinkHandler = (data) => {
+/*const addCustomLinkHandler = (data) => {
   store.addCustomLink(data);
 }
 
 const removeCustomLinkHandler = (data) => {
   store.removeCustomLink(data);
-}
+}*/
 
 const updateBrowserIconCustomLinkHandler = (data) => {
   store.updateBrowserIconCustomLink(data);
@@ -104,7 +104,6 @@ const minimizeWinSettingsHandler = () => {
 
 const settingsOverlayHandler = (data) => {
   store.settingsOverlay = data;
-  console.log("test")
 }
 
 const userLoggedInHandler = (data) => {
@@ -131,8 +130,8 @@ onMounted(() => {
   window.api.addEventListener('color-reset', colorResetHandler)
   window.api.addEventListener("toggle-theme", toggleThemeHandler)
   window.api.addEventListener("configDone", configDoneHandler)
-  window.api.addEventListener("addCustomLink", addCustomLinkHandler)
-  window.api.addEventListener("removeCustomLink", removeCustomLinkHandler)
+ // window.api.addEventListener("addCustomLink", addCustomLinkHandler)
+  //window.api.addEventListener("removeCustomLink", removeCustomLinkHandler)
   window.api.addEventListener("updateBrowserIconCustomLink", updateBrowserIconCustomLinkHandler)
   window.api.addEventListener("minimize-winSettings", minimizeWinSettingsHandler)
   window.api.addEventListener("settingsOverlay", settingsOverlayHandler)
@@ -152,11 +151,13 @@ onMounted(() => {
       store.setUser(userDetails)
       store.setUserLoggedIn(true)
       window.api.sendMessage("user-logged-in", userDetails)
+      console.log("user logged in")
     } else {
       // No user logged in
       store.clearUser()
       store.setUserLoggedIn(false)
       window.api.sendMessage("user-logged-out")
+      console.log("user logged out")
     }
   })
 });
@@ -167,8 +168,8 @@ onBeforeUnmount(() => {
   window.api.removeEventListener('color-reset', colorResetHandler)
   window.api.removeEventListener("toggle-theme", toggleThemeHandler)
   window.api.removeEventListener("configDone", configDoneHandler)
-  window.api.removeEventListener("addCustomLink", addCustomLinkHandler)
-  window.api.removeEventListener("removeCustomLink", removeCustomLinkHandler)
+ // window.api.removeEventListener("addCustomLink", addCustomLinkHandler)
+ // window.api.removeEventListener("removeCustomLink", removeCustomLinkHandler)
   window.api.removeEventListener("updateBrowserIconCustomLink", updateBrowserIconCustomLinkHandler)
   window.api.removeEventListener("minimize-winSettings", minimizeWinSettingsHandler)
   window.api.removeEventListener("settingsOverlay", settingsOverlayHandler)
