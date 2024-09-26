@@ -298,10 +298,24 @@
             v-if="showExternalDomainUsersAlert"
             :class="{ 'animate__animated animate__flash': animate }"
             class="my-4"
-            type="warning"
+            type="info"
             >An external user was found. Please ensure an external contact exists before running the
             script.</v-alert
           >
+
+          <!--Maximum users reached-->
+          <v-alert
+            v-if="pastedDataLength > 7999"
+            :class="{ 'animate__animated animate__flash': animate }"
+            class="my-4"
+            type="warning"
+          >
+            The maximum character limit is {{ maxUserLength }}, which is approximately 240 users. The pasted data contains {{ pastedDataLength }} characters. Only the first users within the 8000 character limit were added to the list of users. Please review this before running the script.
+            <v-card-actions>
+              <v-btn color="black" @click="acceptReducedUsers(true)">Accept</v-btn>
+              <v-btn color="black" @click="acceptReducedUsers(false)">Clear users</v-btn>
+            </v-card-actions>
+          </v-alert>
 
           <!--Removed pasted text-->
           <v-expansion-panels v-if="removedPastedText.length > 0" class="my-2">
@@ -458,7 +472,7 @@
                   class="mb-1 ml-2"
                   :class="{
                     'bg-error': invalidUsers.includes(item),
-                    'bg-warning': externalDomainUsers.includes(item) && !invalidUsers.includes(item)
+                    'bg-info': externalDomainUsers.includes(item) && !invalidUsers.includes(item)
                   }"
                 >
                   {{ item }}
@@ -734,6 +748,8 @@ const mailbox = ref('')
 const displayName = ref('')
 const mailboxes = ref([])
 const isProcessing = ref(false);
+const maxUserLength = ref(8000)
+const pastedDataLength = ref(0)
 let animate = ref(false);
 const removedPastedText = ref([])
 const externalDomainUsers = ref([])
@@ -1343,6 +1359,7 @@ const areRulesMet = computed(() => {
 const isButtonDisabled = computed(() => {
   const script = scripts.value[chosenScript.value];
   return (
+    pastedDataLength.value > 7999 ||
     (script.multipleUsers &&
       (invalidUsers.value.length > 0 ||
         invalidOwners.value.length > 0 ||
@@ -1545,7 +1562,16 @@ const checkExternalDomain = (usersArray, arrayType) => {
   }
 }
 const onPaste = (event, array, arrayType) => {
-  const pastedData = event.clipboardData.getData('text');
+  let pastedData = event.clipboardData.getData('text');
+  pastedDataLength.value = pastedData.length;
+
+  // Check if the pasted data exceeds the maximum length
+  if (pastedData.length > maxUserLength.value) {
+    pastedData = pastedData.substring(0, maxUserLength.value);
+    store.showGeneralSnackbar = true;
+    store.snackbarMessage = `Pasted data was truncated to ${maxUserLength.value} characters.`;
+  }
+
   removedPastedText.value = [];
   isProcessing.value = true;
 
@@ -1590,6 +1616,17 @@ const onPaste = (event, array, arrayType) => {
 
   worker.postMessage({ pastedData });
 };
+const acceptReducedUsers = (accepted) => {
+  if(accepted) {
+    console.log("accepted")
+    pastedDataLength.value = 0;
+  } else {
+    clearAllUsers(users.value, 'users')
+    pastedDataLength.value = 0;
+
+  }
+  showMaxUsersAlert.value = false;
+}
 const clearInputField = (arrayType) => {
   if (arrayType === 'users') {
     setTimeout(() => {
