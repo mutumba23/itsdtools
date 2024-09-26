@@ -221,7 +221,7 @@
           <v-text-field
             v-if="scripts[chosenScript].multipleUsers && !scripts[chosenScript].requiresOwner"
             v-model="newUser"
-            :disabled="scripts[chosenScript].isLoading"
+            :disabled="scripts[chosenScript].isLoading || isProcessing"
             autogrow
             clearable
             label="User email address"
@@ -282,6 +282,26 @@
             <v-icon color="error">fas fa-user</v-icon>
           </template>
           </v-text-field>
+
+          <!--Invalid users and mailboxes alerts-->
+          <v-alert
+            v-if="
+              (invalidUsers.length > 0 || invalidOwners.length > 0 || invalidMailboxes.length > 0) &&
+              scripts[chosenScript].multipleUsers
+            "
+            class="my-4 animate__animated animate__flash"
+            type="error"
+            >At least one of the email addresses has an incorrect format.</v-alert
+          >
+          <!--External users alert-->
+          <v-alert
+            v-if="showExternalDomainUsersAlert"
+            :class="{ 'animate__animated animate__flash': animate }"
+            class="my-4"
+            type="warning"
+            >An external user was found. Please ensure an external contact exists before running the
+            script.</v-alert
+          >
 
           <!--Removed pasted text-->
           <v-expansion-panels v-if="removedPastedText.length > 0" class="my-2">
@@ -425,20 +445,29 @@
               </v-tooltip>
             </v-card-title>
             <div class="align-start flex-column d-flex">
-              <v-chip
-                v-for="(user, index) in users"
-                :key="index"
-                class="mb-1 ml-2 animate__backInDown animate__animated"
-                :class="{
-                  'bg-error': invalidUsers.includes(user),
-                  'bg-warning': externalDomainUsers.includes(user) && !invalidUsers.includes(user)
-                }"
-              >
-                {{ user }}
-                <v-icon class="ml-1" color="primary" size="small" @click="removeUser(index, users, 'users')"
-                  >fas fa-circle-xmark</v-icon
+              <v-virtual-scroll
+              :items="sortedUsers"
+              max-height="275"
+              item-height="50"
+              class="show-scrollbar"
+              width="100%"
+            >
+              <template #default="{ item, index }">
+                <v-chip
+                  :key="index"
+                  class="mb-1 ml-2"
+                  :class="{
+                    'bg-error': invalidUsers.includes(item),
+                    'bg-warning': externalDomainUsers.includes(item) && !invalidUsers.includes(item)
+                  }"
                 >
-              </v-chip>
+                  {{ item }}
+                  <v-icon class="ml-1" color="primary" size="small" @click="removeUser(index, users, 'users')">
+                    fas fa-circle-xmark
+                  </v-icon>
+                </v-chip>
+              </template>
+            </v-virtual-scroll>
             </div>
           </v-card>
 
@@ -483,26 +512,6 @@
               </v-chip>
             </div>
           </v-card>
-
-          <!--Invalid users and mailboxes alerts-->
-          <v-alert
-            v-if="
-              (invalidUsers.length > 0 || invalidOwners.length > 0 || invalidMailboxes.length > 0) &&
-              scripts[chosenScript].multipleUsers
-            "
-            class="mt-4 animate__animated animate__flash"
-            type="error"
-            >At least one of the email addresses has an incorrect format.</v-alert
-          >
-          <!--External users alert-->
-          <v-alert
-            v-if="showExternalDomainUsersAlert"
-            :class="{ 'animate__animated animate__flash': animate }"
-            class="mt-4"
-            type="warning"
-            >An external user was found. Please ensure an external contact exists before running the
-            script.</v-alert
-          >
         </v-card>
 
         <!--Script is running-->
@@ -529,6 +538,22 @@
             :size="100"
             :width="15"
             >{{ scripts[chosenScript].loadingTime }} ms</v-progress-circular
+          >
+          <v-alert v-if="scripts[chosenScript].longLoadingMessage" class="ma-4" type="info">{{
+            scripts[chosenScript].longLoadingMessage
+          }}</v-alert>
+        </div>
+
+        <!--isProcessing-->
+        <div
+          v-if="isProcessing"
+          class="d-flex flex-column justify-center align-center mt-8"
+        >
+        <v-card-text>Processing large amount of pasted data</v-card-text>
+          <v-progress-circular
+            indeterminate
+            color="primary"
+            ></v-progress-circular
           >
           <v-alert v-if="scripts[chosenScript].longLoadingMessage" class="ma-4" type="info">{{
             scripts[chosenScript].longLoadingMessage
@@ -708,6 +733,7 @@ const newMailbox = ref('')
 const mailbox = ref('')
 const displayName = ref('')
 const mailboxes = ref([])
+const isProcessing = ref(false);
 let animate = ref(false);
 const removedPastedText = ref([])
 const externalDomainUsers = ref([])
@@ -1377,6 +1403,15 @@ const showExternalDomainUsersAlert = computed(() => {
     scripts.value[chosenScript.value].multipleUsers
   );
 });
+const sortedUsers = computed(() => {
+  return users.value.slice().sort((a, b) => {
+    const aInvalid = invalidUsers.value.includes(a);
+    const bInvalid = invalidUsers.value.includes(b);
+    if (aInvalid && !bInvalid) return -1;
+    if (!aInvalid && bInvalid) return 1;
+    return 0;
+  });
+});
 //Uncomment below to set automapping to false if more than 3 mailboxes.
 //const mailboxesLength = computed(() => mailboxes.value.length)
 ///////////////////////////////////////////////////
@@ -1510,83 +1545,66 @@ const checkExternalDomain = (usersArray, arrayType) => {
   }
 }
 const onPaste = (event, array, arrayType) => {
-  const pastedData = event.clipboardData.getData('text')
-  let pastedItems = []
-  removedPastedText.value = []
+  const pastedData = event.clipboardData.getData('text');
+  removedPastedText.value = [];
+  isProcessing.value = true;
 
-  // Split pasted data using semicolons or colons as delimiters
-  pastedItems = pastedData.split(/[\s;,:|/\\<>]+/)
+  const worker = new Worker(new URL('./pasteWorker.js', import.meta.url));
 
-  // If there are no items after splitting, it means the data might be from Excel, so it is split using tabs or commas as delimiters
-  if (pastedItems.length === 1) {
-    pastedItems = pastedData.split(/[\t,]+/)
-  }
+  worker.onmessage = function (e) {
+    const { pastedItems, removedItems } = e.data;
+    removedPastedText.value = removedItems;
 
-  // Filter out items that are not valid email addresses and add them to removedItems
-  pastedItems = pastedItems.filter((item) => {
-    if (validator.isEmail(item.trim())) {
-      return true
+    // If there's only one item being pasted
+    if (pastedItems.length === 1) {
+      const singleItem = pastedItems[0];
+      // Check if the single item is a valid email address
+      if (isValidEmail(singleItem)) {
+        // Add the single item to the array
+        if (!array.includes(singleItem)) {
+          array.push(singleItem);
+        } else {
+          store.showGeneralSnackbar = true;
+          store.snackbarMessage = singleItem + ' is already in the list.';
+        }
+        // Clear the appropriate input field
+        clearInputField(arrayType);
+      }
     } else {
-      removedPastedText.value.push(item)
-      return false
-    }
-  })
-
-  // If there's only one item being pasted
-  if (pastedItems.length === 1) {
-    const singleItem = pastedItems[0]
-    // Check if the single item is a valid email address
-    if (isValidEmail(singleItem)) {
-      // Add the single item to the array
-      if (!array.includes(singleItem)) {
-        array.push(singleItem)
-      } else {
-        store.showGeneralSnackbar = true
-        store.snackbarMessage = singleItem + ' is already in the list.'
-      }
+      // Add all items to the array
+      pastedItems.forEach((item) => {
+        if (!array.includes(item)) {
+          array.push(item);
+        } else {
+          store.showGeneralSnackbar = true;
+          store.snackbarMessage = 'Duplicate found. The address was not added twice';
+        }
+      });
       // Clear the appropriate input field
-      if (arrayType === 'users') {
-        setTimeout(() => {
-          newUser.value = ''
-        }, 300)
-      } else if (arrayType === 'mailboxes') {
-        setTimeout(() => {
-          newMailbox.value = ''
-        }, 300)
-      } else if (arrayType === 'owners') {
-        setTimeout(() => {
-          removedOwner.value = ''
-        }, 300)
-      }
+      clearInputField(arrayType);
     }
-  } else {
-    // Add all items to the array
-    pastedItems.forEach((item) => {
-      if (!array.includes(item)) {
-        array.push(item)
-      } else {
-        store.showGeneralSnackbar = true
-        store.snackbarMessage = 'Duplicate found. The address was not added twice'
-      }
-    })
-    // Clear the appropriate input field
-    if (arrayType === 'users') {
-      setTimeout(() => {
-        newUser.value = ''
-      }, 300)
-    } else if (arrayType === 'mailboxes') {
-      setTimeout(() => {
-        newMailbox.value = ''
-      }, 300)
-    } else if (arrayType === 'owners') {
-      setTimeout(() => {
-        removedOwner.value = ''
-      }, 300)
-    }
-  }
 
-  checkExternalDomain(array, arrayType)
-}
+    checkExternalDomain(array, arrayType);
+    isProcessing.value = false;
+  };
+
+  worker.postMessage({ pastedData });
+};
+const clearInputField = (arrayType) => {
+  if (arrayType === 'users') {
+    setTimeout(() => {
+      newUser.value = '';
+    }, 300);
+  } else if (arrayType === 'mailboxes') {
+    setTimeout(() => {
+      newMailbox.value = '';
+    }, 300);
+  } else if (arrayType === 'owners') {
+    setTimeout(() => {
+      removedOwner.value = '';
+    }, 300);
+  }
+};
 const addMailbox = () => {
   if (newMailbox.value.trim() !== '') {
     // Check if the new mailbox already exists in the array
@@ -1888,4 +1906,6 @@ onBeforeUnmount(() => {
   opacity: 0.3; /* Adjust this value to change the opacity */
   z-index: -1;
 }
+
+
 </style>

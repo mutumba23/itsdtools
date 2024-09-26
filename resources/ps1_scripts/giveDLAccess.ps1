@@ -17,17 +17,52 @@ try {
     }
 
     # Check if users exist
-    $tempUsers = $users | ForEach-Object {
-        $userExists = Get-User -Identity $_ -ErrorAction SilentlyContinue
+    $tempUsers = @() # Initialize the array to store user objects
+    $tempNonExistingUsers = @() # Initialize the array to store non-existing users
+    foreach ($userId in $users) {
+        $userExists = Get-User -Identity $userId -ErrorAction SilentlyContinue
         if ($null -eq $userExists) {
-            "User does not exist: $_"
+            $tempNonExistingUsers += "User does not exist: $userId"
         } else {
-            $_
+            if ($userExists.RecipientTypeDetails -eq "UserMailbox") {
+                Write-Output ("User is a mailbox: $userId")
+                $tempUsers += [PSCustomObject]@{
+                    Email = $userId
+                    Guid = $userExists.Guid
+                }
+            } elseif ($userExists.RecipientTypeDetails -eq "GuestMailUser") {
+                Write-Output ("User is a guest mail user: $userId")
+                $tempUsers += [PSCustomObject]@{
+                    Email = $userId
+                    Guid = $userExists.Guid
+                    Type = "GuestMailUser"
+                }
+            } elseif ($userExists.RecipientTypeDetails -eq "MailContact") {
+                Write-Output ("User is a mail contact: $userId")
+                $tempUsers += [PSCustomObject]@{
+                    Email = $userId
+                    Guid = $userExists.Guid
+                    Type = "MailContact"
+                }
+            }
+        }
+    }
+    
+    # Remove MailContact if GuestMailUser exists for the same email
+    $filteredUsers = $tempUsers | Group-Object Email | ForEach-Object {
+        if ($_.Count -gt 1) {
+            # If both GuestMailUser and MailContact exist, prefer GuestMailUser
+            $_.Group | Where-Object { $_.Type -eq "GuestMailUser" }
+        } else {
+            $_.Group[0]  # Take the first (and only) user object
         }
     }
 
+    # Create the $existingUsers array with filtered users
+    $existingUsers = $filteredUsers
+
     # Collect non-existing users and distribution groups
-    $nonExistingUsers = $tempUsers | Where-Object { $_ -like "User does not exist:*" }
+    $nonExistingUsers = $tempNonExistingUsers | Where-Object { $_ -like "User does not exist:*" }
     $nonExistingMailboxes = $tempMailboxes | Where-Object { $_ -like "Distribution Group does not exist:*" }
 
     # Output a single message for non-existing users and distribution groups
@@ -38,20 +73,19 @@ try {
         Write-Output ("The following distribution groups do not exist: " + (($nonExistingMailboxes -replace 'Distribution Group does not exist: ', '') -join ', '))
     }
 
-    # Create the $existingUsers and existingMailboxes array by excluding non-existing users and distribution groups
-    $existingUsers = $tempUsers | Where-Object { $_ -notlike "User does not exist:*" }
+    # Create the $existingMailboxes array by excluding non-existing distribution groups
     $existingMailboxes = $tempMailboxes | Where-Object { $_ -notlike "Distribution Group does not exist:*" }
 
     foreach ($mailbox in $existingMailboxes) {
         foreach ($user in $existingUsers) {
             try {
-                $addMemberResult = Add-DistributionGroupMember -Identity $mailbox -Member $user -ErrorAction Stop
-                Write-Output ("SUCCESS|UserAdded|User:$user|Mailbox:$mailbox|$addMemberResult")
+                $addMemberResult = Add-DistributionGroupMember -Identity $mailbox -Member $user.Guid -ErrorAction Stop
+                Write-Output ("SUCCESS|UserAdded|User:$($user.Email)|Mailbox:$mailbox|$addMemberResult")
             } catch {
                 if ($_.Exception.Message -like "*already a member*") {
-                    Write-Output ("INFO|AlreadyMember|User:$user|Mailbox:$mailbox")
+                    Write-Output ("INFO|AlreadyMember|User:$($user.Email)|Mailbox:$mailbox")
                 } else {
-                    Write-Output ("ERROR|FailedToAdd|User:$user|Mailbox:$mailbox")
+                    Write-Output ("ERROR|FailedToAdd|User:$($user.Email)|Mailbox:$mailbox|Error: $($_.Exception.Message)")
                 }
                 continue
             }
