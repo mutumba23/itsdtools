@@ -787,17 +787,17 @@ const textFieldRulesNetworkID = ref([
 const textFieldRulesMailbox = ref([
   (value) => {
     if (typeof value === 'undefined' || value === null) {
-      return 'Value is required'
+      return 'Value is required';
     }
-    const trimmedValue = value.trim()
+    const trimmedValue = value.trim().toLowerCase(); // Convert to lowercase
 
     if (validator.isEmail(trimmedValue) && trimmedValue.endsWith('@inter.ikea.com')) {
-      return true
+      return true;
     } else {
-      return 'Input must be a valid email address'
+      return 'Input must be a valid email address';
     }
   }
-])
+]);
 const textFieldRulesDisplayName = ref([
   (value) => {
       if (typeof value === 'undefined' || value === null || value === '') {
@@ -1377,24 +1377,32 @@ const invalidUsers = computed(() => {
   if (scripts.value[chosenScript.value].requiresDL && !scripts.value[chosenScript.value].requiresOwner) {
     return users.value.filter(
       (user) => !validator.isEmail(user)
-    )
+    );
   } else {
     return users.value.filter(
-      (user) => !validator.isEmail(user) || !/.+\..+@/.test(user) || !user.endsWith('@inter.ikea.com')
-    )
+      (user) => {
+        const lowerCaseUser = user.toLowerCase(); // Convert to lowercase
+        return !validator.isEmail(lowerCaseUser) || !/.+\..+@/.test(lowerCaseUser) || !lowerCaseUser.endsWith('@inter.ikea.com');
+      }
+    );
   }
-})
+});
 const invalidOwners = computed(() => {
-    const regex = /^[^@]*\.[^@]*@inter\.ikea\.com$/;
-  return ownersToRemove.value.filter(
-    (user) => !regex.test(user)
-  )
-})
+  const regex = /^[^@]*\.[^@]*@inter\.ikea\.com$/;
+  return ownersToRemove.value.filter((user) => {
+    const lowerCaseUser = user.toLowerCase(); // Convert to lowercase
+    return !regex.test(lowerCaseUser);
+  });
+});
 const invalidMailboxes = computed(() => {
-  return mailboxes.value.filter(
-    (mailbox) => !validator.isEmail(mailbox) || (!mailbox.endsWith('@inter.ikea.com') && !mailbox.endsWith('@OneIIG.onmicrosoft.com'))
-  )
-})
+  return mailboxes.value.filter((mailbox) => {
+    const lowerCaseMailbox = mailbox.toLowerCase(); // Convert to lowercase
+    return (
+      !validator.isEmail(lowerCaseMailbox) ||
+      (!lowerCaseMailbox.endsWith('@inter.ikea.com') && !lowerCaseMailbox.endsWith('@oneiig.onmicrosoft.com'))
+    );
+  });
+});
 const showScriptStatus = computed(() => {
   const script = scripts.value[chosenScript.value]
   return (
