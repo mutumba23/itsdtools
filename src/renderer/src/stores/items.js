@@ -4,6 +4,7 @@ export const useMyStore = defineStore('ITSDToolsStore', {
   state: () => ({
     configDone: false,
     settingsOverlay: false,
+    fetchingDataInProgress: false,
     showCard: {
       communication: true,
       customLinks: true,

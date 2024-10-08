@@ -52,8 +52,20 @@
     {{ snackbarText }}
   </v-snackbar>
 
+  <!--Loading while starting up-->
+  <div v-if="store.fetchingDataInProgress" class="justify-center bg-background text-center" style="height: 100%">
+    <v-progress-circular
+    class="mt-4"
+      color="primary"
+      :size="150"
+      :width="7"
+      indeterminate
+    >Loading Tools</v-progress-circular>
+  </div>
+
   <!--Boxes-->
   <div
+    v-if="!store.fetchingDataInProgress"
     id="dropContainer"
     class="d-flex justify-center flex-wrap"
     style="height: 100%"
@@ -147,7 +159,7 @@
 
     <!--Custom links-->
     <v-card
-      v-if="store.showCard.customLinks || store.settingsOverlay"
+      v-if="customLinks || store.settingsOverlay"
       id="customLinks"
       flat
       class="bg-secondary pb-4 ma-1 flex-grow-1 custom-links-card show-scrollbar"
@@ -541,47 +553,54 @@ const removeCustomLinkHandler = async () => {
 //Mounted
 ///////////////////////////////////////////////////
 onMounted(async () => {
-  if(store.user && !store.userLoggedInBefore) {
-      await createUserDocument(store.user, store.customLinks)
-      store.userLoggedInBefore = true;
-    }
-
-  //store.UPDATE_COMMON_TOOLS();
-  window.api.addEventListener("drag-end", dragEndHandler)
-  window.api.addEventListener("removed-item", removedItemHandler)
-  window.api.addEventListener("open-imu-response", imuResponse)
-  window.api.addEventListener("addCustomLink", addCustomLinkHandler)
-  window.api.addEventListener("removeCustomLink", removeCustomLinkHandler)
-
-  // Fetch tools from the database
-  const commonToolsDocs = await getDocumentsFromCollection('commonTools');
-  const communicationDocs = await getDocumentsFromCollection('communications');
-  const remoteAssistanceDocs = await getDocumentsFromCollection('remoteAssistance');
-
-  // Update the tools for the user
-  if(store.user.uid) {
-    await updateUserDocumentArrays(store.user.uid, {
-      commonTools: commonToolsDocs,
-      communications: communicationDocs,
-      remoteAssistance: remoteAssistanceDocs
-    });
-
-    // Fetch the user document
-    const commonTools = await fetchUserArray('commonTools');
-    const communications = await fetchUserArray('communications');
-    const remoteAssistance = await fetchUserArray('remoteAssistance');
-    const customLinks = await fetchUserArray('customLinks');
-    userCommonTools.value = commonTools;
-    userCommunications.value = communications;
-    userRemoteAssistance.value = remoteAssistance;
-    userCustomLinks.value = customLinks;
+  if (store.user && !store.userLoggedInBefore) {
+    await createUserDocument(store.user, store.customLinks);
+    store.userLoggedInBefore = true;
   }
 
-  //Uncomment below to create documents in the database
-  //const array = store.updatedCommonTools;
-  //const collectionName = "commonTools";
-  //await createDocumentsFromArray(array, collectionName);
+  // Set fetchingDataInProgress to true before starting fetch operations
+  store.fetchingDataInProgress = true;
 
+  // Add event listeners
+  window.api.addEventListener('drag-end', dragEndHandler);
+  window.api.addEventListener('removed-item', removedItemHandler);
+  window.api.addEventListener('open-imu-response', imuResponse);
+  window.api.addEventListener('addCustomLink', addCustomLinkHandler);
+  window.api.addEventListener('removeCustomLink', removeCustomLinkHandler);
+
+  try {
+    // Fetch tools from the database
+    const commonToolsDocs = await getDocumentsFromCollection('commonTools');
+    const communicationDocs = await getDocumentsFromCollection('communications');
+    const remoteAssistanceDocs = await getDocumentsFromCollection('remoteAssistance');
+
+    // Update the tools for the user
+    if (store.user.uid) {
+      await updateUserDocumentArrays(store.user.uid, {
+        commonTools: commonToolsDocs,
+        communications: communicationDocs,
+        remoteAssistance: remoteAssistanceDocs,
+      });
+
+      // Fetch the user document
+      const commonTools = await fetchUserArray('commonTools');
+      const communications = await fetchUserArray('communications');
+      const remoteAssistance = await fetchUserArray('remoteAssistance');
+      const customLinks = await fetchUserArray('customLinks');
+      userCommonTools.value = commonTools;
+      userCommunications.value = communications;
+      userRemoteAssistance.value = remoteAssistance;
+      userCustomLinks.value = customLinks;
+    }
+  } finally {
+    // Set fetchingDataInProgress to false after fetch operations are complete
+    store.fetchingDataInProgress = false;
+  }
+
+  // Uncomment below to create documents in the database
+  // const array = store.updatedCommonTools;
+  // const collectionName = 'commonTools';
+  // await createDocumentsFromArray(array, collectionName);
 });
 
 onBeforeUnmount(() => {
