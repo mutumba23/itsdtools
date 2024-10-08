@@ -18,7 +18,36 @@ import { removeDLAccess } from './scripts/exchange/removeDLAccess.js';
 import { addDLOwners } from './scripts/exchange/addDLOwners.js';
 import { installExchangeModule } from './scripts/dependencies/installExchangeModule.js';
 import { exec } from 'child_process';
+import os from 'os';
 
+// Function to detect if running in a VDI environment
+function isRunningInVDI() {
+  const sessionName = process.env.SESSIONNAME || '';
+  const clientName = process.env.CLIENTNAME || '';
+  const term = process.env.TERM || '';
+  const hostname = os.hostname();
+  const vdiIndicators = ['ICA', 'RDP-Tcp', 'X11', 'SSH'];
+
+  console.log('HOSTNAME:', hostname);
+
+  // Check if hostname starts with ITINECU
+  if (hostname.startsWith('ITIN')) {
+    return true;
+  }
+
+  // Check environment variables
+  return vdiIndicators.some(indicator => sessionName.startsWith(indicator) || clientName.includes(indicator) || term.includes(indicator));
+}
+
+// Disable hardware acceleration and transparency if running in a VDI
+let isTransparent = true;
+if (isRunningInVDI()) {
+  console.log('VDI environment detected. Disabling transparency and GPU acceleration.');
+  app.disableHardwareAcceleration();
+  isTransparent = false;
+} else {
+  console.log('Not running in a VDI environment. Transparency and GPU acceleration enabled.');
+}
 
 // Enable auto-launch
 const autoLauncher = new AutoLaunch({
@@ -99,6 +128,7 @@ function setupAutoUpdater() {
       autoUpdater.quitAndInstall();
     }
   });
+  console.log('AutoUpdater setup completed');
 }
 
 function registerShortcuts(window) {
@@ -106,6 +136,7 @@ function registerShortcuts(window) {
     window.webContents.openDevTools({ mode: 'right' })
   })
 }
+
 
 function handleWindowOpen(window) {
   window.webContents.setWindowOpenHandler((details) => {
@@ -566,20 +597,49 @@ function setupSettingsWindowIPCListeners() {
 
   //Send info to settingsComponent.vue to show add custom link
   ipcMain.on('show-add-custom-link', () => {
+    const winBounds = win.getBounds()
+     const screenBounds = screen.getPrimaryDisplay().workArea
+     const settingsBounds = winSettings.getBounds()
+   
+     let x, y
+     const gap = 10;
+   
+     // If the secondary window goes off the right edge of the screen, check if it fits on the left
+     if (winBounds.x + winBounds.width + settingsBounds.width + gap > screenBounds.x + screenBounds.width) {
+       if (winBounds.x - settingsBounds.width - gap < screenBounds.x) {
+         // If it doesn't fit on the left either, place it at the very far right side of the screen
+         x = screenBounds.x + screenBounds.width - settingsBounds.width
+       } else {
+         // If it fits on the left, place it to the left of win
+         x = winBounds.x - settingsBounds.width - gap
+       }
+     } else {
+       x = winBounds.x + winBounds.width + gap
+     }
+   
+     // If the secondary window goes off the bottom edge of the screen, adjust y
+     if (winBounds.y + settingsBounds.height > screenBounds.y + screenBounds.height) {
+       y = screenBounds.y + screenBounds.height - settingsBounds.height
+     } else {
+       y = winBounds.y
+     }
+   
+     winSettings.setBounds({ x, y })
+     manageWindow(winSettings, 'show')
     sendMessageToWindow(winSettings, 'show-add-custom-link', {})
   })
 }
 
 //Create the windows
 let win
-function createWindow() {
+function createWindow(isTransparent) {
   // Create the browser window.
   win = new BrowserWindow({
     title: 'Main Window',
     minWidth: 710,
-    maxHeight: 545,
+    maxHeight: 545, // 545 default
     width: 780,
-    height: 545,
+    height: 545, // 545 default 500 good with VDI
     icon: icon,
     skipTaskbar: false,
     movable: true,
@@ -588,7 +648,7 @@ function createWindow() {
     opacity: 1,
     autoHideMenuBar: true,
     ...(process.platform === 'linux' ? { icon } : {}),
-    transparent: true,
+    transparent: isTransparent,
     frame: false,
     webPreferences: {
       devTools: true,
@@ -626,7 +686,7 @@ function createWindow() {
 }
 
 let winSettings
-function createSettingsWindow() {
+function createSettingsWindow(isTransparent) {
   if (!winSettings) {
   winSettings = new BrowserWindow({
     title: 'Settings Window',
@@ -641,7 +701,7 @@ function createSettingsWindow() {
     opacity: 1,
     autoHideMenuBar: true,
     ...(process.platform === 'linux' ? { icon } : {}),
-    transparent: true,
+    transparent: isTransparent,
     frame: false,
     webPreferences: {
       devTools: true,
@@ -665,7 +725,7 @@ function createSettingsWindow() {
 }
 
 let winPLIPAssist
-function createPLIPAssistWindow() {
+function createPLIPAssistWindow(isTransparent) {
   if (!winPLIPAssist) {
     winPLIPAssist = new BrowserWindow({
       title: 'PLIPAssist Window',
@@ -680,7 +740,7 @@ function createPLIPAssistWindow() {
       opacity: 1,
       autoHideMenuBar: true,
       ...(process.platform === 'linux' ? { icon } : {}),
-      transparent: true,
+      transparent: isTransparent,
       frame: false,
       webPreferences: {
         devTools: true,
@@ -717,13 +777,15 @@ app.whenReady().then(() => {
     optimizer.watchWindowShortcuts(window)
   })
 
-  win = createWindow()
-  winSettings = createSettingsWindow()
-  winPLIPAssist = createPLIPAssistWindow()
-  setupSharedIPCMainListeners()
-  setupMainWindowIPCListeners()
-  setupSettingsWindowIPCListeners()
-  setupPLIPAssistWindowIPCListeners()
+   // Create windows
+   win = createWindow(isTransparent);
+   winSettings = createSettingsWindow(isTransparent);
+   winPLIPAssist = createPLIPAssistWindow(isTransparent);
+ 
+   setupSharedIPCMainListeners();
+   setupMainWindowIPCListeners();
+   setupSettingsWindowIPCListeners();
+   setupPLIPAssistWindowIPCListeners();
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the

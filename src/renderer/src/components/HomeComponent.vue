@@ -56,6 +56,7 @@
   <div
     id="dropContainer"
     class="d-flex justify-center flex-wrap"
+    style="height: 100%"
     dropzone="dropContainer"
     @dragover.prevent
     @dragend="dragEnd"
@@ -146,7 +147,7 @@
 
     <!--Custom links-->
     <v-card
-      v-if="(customLinks.length > 0 && store.showCard.customLinks) || store.settingsOverlay"
+      v-if="store.showCard.customLinks || store.settingsOverlay"
       id="customLinks"
       flat
       class="bg-secondary pb-4 ma-1 flex-grow-1 custom-links-card show-scrollbar"
@@ -171,6 +172,7 @@
       <v-btn
         v-if="customLinks.length < 1"
         class="mx-4 flex-grow-1 justify-center"
+        size="small"
         @click="showAddCustomLink"
         >Add custom link</v-btn
       >
@@ -643,4 +645,6 @@ body {
   max-height: 305px; /* Adjust the height as needed */
   overflow-y: auto;
 }
+
+
 </style>
