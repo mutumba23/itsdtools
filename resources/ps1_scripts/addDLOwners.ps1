@@ -1,9 +1,10 @@
 param($mailboxes, $owners, $ownersToRemove, $keepOwners)
+
 Write-Output "keepOwners: $keepOwners"
 $keepOwners = [System.Convert]::ToBoolean($keepOwners)
 
 $mailboxes = $mailboxes -split ','
-$owners = $owners -split ','
+$owners = $owners -split ',' | Where-Object { $_ -ne '' -and $_ -ne $null }
 $ownersToRemove = if ($ownersToRemove -eq '') { @() } else { $ownersToRemove -split ',' }
 
 try {
@@ -41,12 +42,29 @@ try {
         # If keepOwners is true, add new owners and remove selected owners without removing all existing ones
         else {
             try {
-                Set-DistributionGroup -Identity $mailbox -ManagedBy @{Add=$owners; Remove=$ownersToRemove} -BypassSecurityGroupManagerCheck
+                # Get current owners
+                $currentOwners = (Get-DistributionGroup -Identity $mailbox | Select-Object -ExpandProperty ManagedBy) | ForEach-Object {
+                    (Get-User -Identity $_).UserPrincipalName
+                }
+
+                # Calculate final owners list
+                $newOwners = ($currentOwners + $owners) | Where-Object { $_ -notin $ownersToRemove } | Select-Object -Unique
+
+                # Update the ManagedBy property
+                Set-DistributionGroup -Identity $mailbox -ManagedBy $newOwners -BypassSecurityGroupManagerCheck
+
+                # Log successful changes
                 foreach ($ownerToRemove in $ownersToRemove) {
-                    Write-Output "SUCCESS|OwnerRemoved|Owner:$ownerToRemove|Mailbox:$mailbox"
+                    if ($ownerToRemove -in $currentOwners) {
+                        Write-Output "SUCCESS|OwnerRemoved|Owner:$ownerToRemove|Mailbox:$mailbox"
+                    } else {
+                        Write-Output "INFO|OwnerNotFound|Owner:$ownerToRemove|Mailbox:$mailbox"
+                    }
                 }
                 foreach ($owner in $owners) {
-                    Write-Output "SUCCESS|OwnerAdded|Owner:$owner|Mailbox:$mailbox"
+                    if ($owner -notin $currentOwners) {
+                        Write-Output "SUCCESS|OwnerAdded|Owner:$owner|Mailbox:$mailbox"
+                    }
                 }
             } catch {
                 $errorDetails = @{
@@ -54,7 +72,7 @@ try {
                     Type = $_.Exception.GetType().FullName
                     StackTrace = $_.Exception.StackTrace
                 }
-                Write-Output "ERROR|FailedToAddOrRemove|Mailbox:$mailbox|Error:$_|FullError:$(ConvertTo-Json $errorDetails)"
+                Write-Output "ERROR|FailedToUpdateOwners|Mailbox:$mailbox|Error:$_|FullError:$(ConvertTo-Json $errorDetails)"
             }
         }
     }

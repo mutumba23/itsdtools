@@ -87,6 +87,23 @@ const addDLOwners = ({ mailboxes, users, keepOwners, ownersToRemove }) => {
               } else {
                 errorMessages.push(message);
               }
+            } else if (message.startsWith("INFO")) {
+              const parts = message.split("|");
+              if (parts.length >= 3) {
+                const action = parts[1];
+                const user = parts[2].split(":")[1];
+                const mailbox = message.includes("Mailbox:")
+                  ? message.split("Mailbox:")[1]
+                  : "Unknown mailbox";
+
+                if (action === "OwnerNotFound") {
+                  successMessages.push(
+                    `INFO: User ${user} does not exist as an owner in DL ${mailbox}.`
+                  );
+                }
+              } else {
+                successMessages.push(message);
+              }
             } else if (message.startsWith("The following users do not exist")) {
               errorMessages.push(message);
             } else if (message.startsWith("The following distribution groups do not exist")) {

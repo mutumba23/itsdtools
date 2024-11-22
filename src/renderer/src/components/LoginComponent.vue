@@ -23,7 +23,6 @@
           label="Email address"
           placeholder="johndoe@gmail.com"
           type="email"
-          clearable
           :rules="[required, emailRule]"
           class="mb-2"
         ></v-text-field>
@@ -34,7 +33,6 @@
           label="Password"
           placeholder="Your app specific password"
           type="password"
-          clearable
           :rules="[required]"
         ></v-text-field>
 
