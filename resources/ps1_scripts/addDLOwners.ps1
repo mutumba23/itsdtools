@@ -1,11 +1,28 @@
-param($mailboxes, $owners, $ownersToRemove, $keepOwners)
+param(
+    [string[]]$mailboxes,
+    [string[]]$owners,
+    [string[]]$ownersToRemove,
+    [string]$keepOwners
+)
 
-Write-Output "keepOwners: $keepOwners"
 $keepOwners = [System.Convert]::ToBoolean($keepOwners)
 
-$mailboxes = $mailboxes -split ','
-$owners = $owners -split ',' | Where-Object { $_ -ne '' -and $_ -ne $null }
-$ownersToRemove = if ($ownersToRemove -eq '') { @() } else { $ownersToRemove -split ',' }
+$mailboxes = if ($null -eq $mailboxes) { @() } else { $mailboxes }
+$owners = if ($null -eq $owners) { @() } else { $owners }
+$ownersToRemove = if ($null -eq $ownersToRemove) { @() } else { $ownersToRemove }
+
+
+$LogFile = "C:\temp\addDLOwnersLog.txt"
+$ErrorFile = "C:\temp\addDLOwnersErrorLog.txt"
+
+# Clear existing logs
+if (Test-Path $LogFile) { Clear-Content -Path $LogFile -ErrorAction SilentlyContinue }
+if (Test-Path $ErrorFile) { Clear-Content -Path $ErrorFile -ErrorAction SilentlyContinue }
+
+
+# Redirect output and errors
+Start-Transcript -Path $LogFile -Append
+
 
 try {
     Connect-ExchangeOnline -ErrorAction Stop
@@ -47,21 +64,45 @@ try {
                     (Get-User -Identity $_).UserPrincipalName
                 }
 
+                Write-Output "Current Owners: $($currentOwners -join ', ')"
+                Write-Output "Current Owners Count: $($currentOwners.Count)"
+                $currentOwners | ForEach-Object { Write-Output "Current Owner: $_" }
+
+                # Ensure currentOwners is an array of strings
+                $currentOwners = [string[]]$currentOwners
+
+                # Ensure owners array is split into individual elements
+                $ownersArray = @($owners) -split ','
+
+                $ownersToRemoveArray = @($ownersToRemove) -split ','
+
+                Write-Output "New Owners to be added: $($ownersArray -join ', ')"
+                Write-Output "New Owners to be added: $($ownersArray.Count)"
+                $ownersArray | ForEach-Object { Write-Output "Owner: $_" }
+
                 # Calculate final owners list
-                $newOwners = ($currentOwners + $owners) | Where-Object { $_ -notin $ownersToRemove } | Select-Object -Unique
+                $newOwners = @($currentOwners) + @($ownersArray) | Where-Object { $_ -notin $ownersToRemoveArray } | Select-Object -Unique
+
+                Write-Output "New list of owners: $($newOwners -join ', ')"  # This is fine for output, but $newOwners remains an array
+                Write-Output "New Owners Count: $($newOwners.Count)"
+                $newOwners | ForEach-Object { Write-Output "Owner: $_" }
+
+                # Ensure $newOwners is an array (this should already be an array, but just in case)
+                $newOwnersArray = [string[]]$newOwners
 
                 # Update the ManagedBy property
-                Set-DistributionGroup -Identity $mailbox -ManagedBy $newOwners -BypassSecurityGroupManagerCheck
+                Set-DistributionGroup -Identity $mailbox -ManagedBy $newOwnersArray -BypassSecurityGroupManagerCheck
+
 
                 # Log successful changes
-                foreach ($ownerToRemove in $ownersToRemove) {
-                    if ($ownerToRemove -in $currentOwners) {
+                foreach ($ownerToRemove in $ownersToRemoveArray) {
+                    if ($ownerToRemove -ne "" -and $ownerToRemove -in $currentOwners) {
                         Write-Output "SUCCESS|OwnerRemoved|Owner:$ownerToRemove|Mailbox:$mailbox"
-                    } else {
+                    } elseif ($ownerToRemove -ne "") {
                         Write-Output "INFO|OwnerNotFound|Owner:$ownerToRemove|Mailbox:$mailbox"
                     }
                 }
-                foreach ($owner in $owners) {
+                foreach ($owner in $ownersArray) {
                     if ($owner -notin $currentOwners) {
                         Write-Output "SUCCESS|OwnerAdded|Owner:$owner|Mailbox:$mailbox"
                     }
@@ -77,9 +118,14 @@ try {
         }
     }
 } catch {
-    Write-Output "An error occurred: $($_.Exception.Message)"
+    if ($_.Exception.Message -like "*User canceled authentication*") {
+        Write-Output "ERROR|MFAWindowCancelled|User canceled authentication"
+    } else {
+        Write-Output "An error occurred: $($_.Exception.Message)"
+    }
     exit 1
 } finally {
     Disconnect-ExchangeOnline -Confirm:$false
     Write-Output "Connection disconnected"
+    Stop-Transcript
 }

@@ -3,6 +3,16 @@ param($mailboxes, $users, $autoMapping)
 $mailboxes = $mailboxes -split ','
 $users = $users -split ','
 
+$LogFile = "C:\temp\giveMailboxAccessLog.txt"
+$ErrorFile = "C:\temp\giveMailboxAccessErrorLog.txt"
+
+# Clear existing logs
+Clear-Content -Path $LogFile -ErrorAction SilentlyContinue
+Clear-Content -Path $ErrorFile -ErrorAction SilentlyContinue
+
+# Redirect output and errors
+Start-Transcript -Path $LogFile -Append
+
 try {
     Connect-ExchangeOnline -ErrorAction Stop
 
@@ -85,4 +95,5 @@ try {
 } finally {
     Disconnect-ExchangeOnline -Confirm:$false
     Write-Output "Connection disconnected"
+    Stop-Transcript
 }

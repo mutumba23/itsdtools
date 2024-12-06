@@ -1,7 +1,18 @@
-param($mailboxes, $users)
+param($mailboxes, $users, $parentWindowHandle)
 
 $mailboxes = $mailboxes -split ','
 $users = $users -split ','
+
+#Start-Transcript -Path "C:\temp\ExchangeOnlineLog.txt" -Append
+$LogFile = "C:\temp\giveDLAccessLog.txt"
+$ErrorFile = "C:\temp\giveDLAccessErrorLog.txt"
+
+# Clear existing logs
+Clear-Content -Path $LogFile -ErrorAction SilentlyContinue
+Clear-Content -Path $ErrorFile -ErrorAction SilentlyContinue
+
+# Redirect output and errors
+Start-Transcript -Path $LogFile -Append
 
 try {
     Connect-ExchangeOnline -ErrorAction Stop
@@ -92,9 +103,14 @@ try {
         }
     }
 } catch {
-    Write-Output "An error occurred: $($_.Exception.Message)"
+    if ($_.Exception.Message -like "*User canceled authentication*") {
+        Write-Output "ERROR|MFAWindowCancelled|User canceled authentication"
+    } else {
+        Write-Output "An error occurred: $($_.Exception.Message)"
+    }
     exit 1
 } finally {
     Disconnect-ExchangeOnline -Confirm:$false
     Write-Output "Connection disconnected"
+    Stop-Transcript
 }

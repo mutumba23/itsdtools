@@ -1,4 +1,6 @@
 const { spawn } = require("child_process");
+const fs = require("fs");
+const path = require("path");
 import ps1Path from '../../../../resources/ps1_scripts/removeMailboxAccess.ps1?asset&asarUnpack'
 
 const removeMailboxAccess = ({ mailboxes, users }) => {
@@ -9,14 +11,29 @@ const removeMailboxAccess = ({ mailboxes, users }) => {
     );
     const cleanedUsers = users.map((email) => email.replace(/\s/g, ""));
 
-    const script = spawn("powershell.exe", [
+    const logFile = path.resolve("C:\\temp\\removeMailboxAccessLog.txt");
+    const errorFile = path.resolve("C:\\temp\\removeMailboxAccessErrorLog.txt"); 
+
+    const powershellPath = "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe";
+    const scriptArgs = [
+      "-WindowStyle", "Hidden",
+      "-NoProfile",
+      "-ExecutionPolicy",
+      "Bypass",
       "-File",
       ps1Path,
       "-mailboxes",
       cleanedMailboxes.join(","),
       "-users",
       cleanedUsers.join(","),
-    ]);
+    ];
+
+    const script = spawn(powershellPath, scriptArgs, { shell: true, env: { ...process.env }, stdio: "pipe", detached: true, windowsHide: true, });
+
+    if (!script) {
+      console.error("Failed to spawn child process");
+      return;
+    }
 
     let stdout = "";
     script.stdout.on("data", (data) => {
@@ -24,11 +41,28 @@ const removeMailboxAccess = ({ mailboxes, users }) => {
       console.log("PowerShell script output:", data.toString());
     });
 
+    let stderr = "";
+    script.stderr.on('data', (data) => {
+      stderr += data.toString();
+    });
+
+    // Allow parent process to exit without waiting for the child process
+    script.unref();
+
     script.on("close", (code) => {
+      const logOutput = fs.existsSync(logFile) ? fs.readFileSync(logFile, "utf8") : "";
+      const errorOutput = fs.existsSync(errorFile) ? fs.readFileSync(errorFile, "utf8") : "";
+      let errorMessages = [];
+      let successMessages = [];
+
+
+
+
+
+
       // Powershell errors
       if (code !== 0) {
         console.error("Error executing PowerShell script:", stdout);
-        let errorMessages = [];
         if (stdout.includes("User canceled authentication")) {
           errorMessages.push("User canceled the authentication process.");
         }
@@ -46,11 +80,14 @@ const removeMailboxAccess = ({ mailboxes, users }) => {
       } else {
         // Powershell success
         console.log("PowerShell script execution succeeded.");
-        const stdoutMessages = stdout.split("\n");
+        const logMessages = logOutput.split("\n");
         let successMessages = [];
         let errorMessages = [];
 
-        stdoutMessages.forEach((message) => {
+        logMessages.forEach((message) => {
+          // Always log all messages to the console for debugging
+          console.log("Log message:", message);
+
           if (message.trim() !== "") {
             if (message.startsWith("SUCCESS")) {
               const parts = message.split("|");
@@ -65,15 +102,13 @@ const removeMailboxAccess = ({ mailboxes, users }) => {
                 if (action === "SendAsPermissionRemoved") {
                   successMessages.push(`SendAs permission for mailbox ${mailbox} removed from user ${user}`);
                 }
-              } else {
-                errorMessages.push(message);
-              }
+              } 
             } else if (message.startsWith("ERROR")) {
               const parts = message.split("|");
               if (parts.length >= 4) {
                 const mailbox = parts[3].split(":")[1];
                 const user = parts[2].split(":")[1];
-                successMessages.push(
+                errorMessages.push(
                   `Failed to remove user ${user} from mailbox ${mailbox}`
                 );
               } else {
@@ -92,9 +127,7 @@ const removeMailboxAccess = ({ mailboxes, users }) => {
                 if (action === "UserDoesNotHaveSendAsPermission") {
                   successMessages.push(`User ${user} did not have SendAs permission on mailbox ${mailbox}`);
                 }
-              } else {
-                errorMessages.push(message);
-              }
+              } 
             } else if (message.startsWith("The following users do not exist")) {
               errorMessages.push(message);
             } else if (message.startsWith("The following mailboxes do not exist")) {
