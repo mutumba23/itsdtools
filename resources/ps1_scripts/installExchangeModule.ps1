@@ -1,25 +1,25 @@
-$outputFile = "$env:TEMP\installExchangeModuleOutput.txt"
-try {
-    Write-Output "Checking if NuGet provider is available..." | Out-File -FilePath $outputFile -Append
-    $nugetProvider = Get-PackageProvider -Name NuGet -Force -ErrorAction SilentlyContinue
-    if ($null -eq $nugetProvider) {
-        Write-Output "NuGet provider not found. Installing NuGet provider..." | Out-File -FilePath $outputFile -Append
-        Install-PackageProvider -Name NuGet -Force -Confirm:$false -AllowClobber | Out-File -FilePath $outputFile -Append
-        Write-Output "NuGet provider installed successfully" | Out-File -FilePath $outputFile -Append
-    } else {
-        Write-Output "NuGet provider is already installed" | Out-File -FilePath $outputFile -Append
-    }
+$LogFile = "C:\temp\installExchangeModuleLog.txt"
+$ErrorFile = "C:\temp\installExchangeModuleErrorLog.txt"
 
-    Write-Output "Checking if ExchangeOnlineManagement module is available..." | Out-File -FilePath $outputFile -Append
+# Clear existing logs
+Clear-Content -Path $LogFile -ErrorAction SilentlyContinue
+Clear-Content -Path $ErrorFile -ErrorAction SilentlyContinue
+
+# Redirect output and errors
+Start-Transcript -Path $LogFile -Append
+
+try {
     $module = Get-Module -ListAvailable -Name ExchangeOnlineManagement
     if ($null -eq $module) {
-        Write-Output "Installing ExchangeOnlineManagement module..." | Out-File -FilePath $outputFile -Append
-        Install-Module -Name ExchangeOnlineManagement -Scope CurrentUser -Force -Confirm:$false -AllowClobber | Out-File -FilePath $outputFile -Append
-        Write-Output "ExchangeOnlineManagement module installed successfully" | Out-File -FilePath $outputFile -Append
+      Write-Output "Installing ExchangeOnlineManagement module..."
+      Install-Module -Name ExchangeOnlineManagement -Scope CurrentUser -Force -Confirm:$false
+      Write-Output "ExchangeOnlineManagement module installed successfully"
     } else {
-        Write-Output "ExchangeOnlineManagement module is already installed" | Out-File -FilePath $outputFile -Append
+      Write-Output "ExchangeOnlineManagement module is already installed"
     }
 } catch {
-    Write-Output "An error occurred while installing the ExchangeOnlineManagement module: $_" | Out-File -FilePath $outputFile -Append
+    Write-Error "An error occurred while installing the ExchangeOnlineManagement module: $_"
     exit 1
+} finally {
+    Stop-Transcript
 }
