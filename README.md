@@ -1,14 +1,32 @@
-# itsdtools
+# ITSD Tools
 
-An Electron application with Vue
+**ITSD Tools** is a desktop application built with **Electron** and **Vue.js**, designed to streamline daily IT support and administration tasks. The tool provides quick access to actions such as managing users, distribution lists, and mailboxes, especially useful in a multi-tenant Microsoft 365/Exchange environment.
+
+> ⚙️ Originally built to support internal IT operations at IKEA.
+---
+## ✨ Features
+
+- 🔒 Azure/Microsoft authentication
+- 📊 View and log usage statistics (via Firebase)
+- 📋 Manage mailboxes, users, and distribution lists
+- 🔁 Run PowerShell scripts securely from the app
+- 🖥️ Cross-platform: Windows, macOS, Linux
+
+---
+## 🚀 Tech Stack
+
+- [Electron](https://www.electronjs.org/)
+- [Vue 3 (Composition API)](https://vuejs.org/)
+- [Firebase](https://firebase.google.com/) (Authentication + Firestore)
+- [PowerShell](https://learn.microsoft.com/en-us/powershell/)
+---
 
 ## Recommended IDE Setup
 
-- [VSCode](https://code.visualstudio.com/) + [ESLint](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint) + [Prettier](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar)
+- [VSCode](https://code.visualstudio.com/)
+- Extensions: ESLint + Prettier + Volar
 
-## Project Setup
-
-### Install
+### Project Setup
 
 ```bash
 $ npm install
